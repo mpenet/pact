@@ -1,0 +1,39 @@
+name: Test
+
+on:
+  push:
+    paths:
+      - src/**
+      - test/**
+      - deps.edn
+
+jobs:
+
+  test:
+
+    runs-on: ubuntu-latest
+
+    container:
+      image: clojure:openjdk-17-tools-deps-slim-bullseye
+      volumes:
+        - ${{ github.workspace }}:${{ github.workspace }}
+      env:
+        ARTIFACTS_USERNAME: ${{ secrets.ARTIFACTS_USERNAME }}
+        ARTIFACTS_PASSWORD: ${{ secrets.ARTIFACTS_PASSWORD }}
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      # - name: Cache mvn/git deps
+      #   uses: actions/cache@v3
+      #   id: cache-deps
+      #   with:
+      #     path: |
+      #       /root/.m2
+      #       /root/.gitlibs
+      #     key: ${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
+
+      - name: Test 
+        id: test
+        run: clj -X:test

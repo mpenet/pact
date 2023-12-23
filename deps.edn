@@ -1,0 +1,27 @@
+{:exoscale.project/lib com.s-exp/pact
+ :exoscale.project/version-file "VERSION"
+ :exoscale.project/deploy? true
+ :slipset.deps-deploy/exec-args {:installer :remote
+                                 :sign-releases? false
+                                 :repository "clojars"}
+
+ :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha5"}}
+
+ :aliases
+ {:project {:deps {io.github.exoscale/tools.project {:git/sha "5f24196ebea4dc6e601d201d97b463ea26923c7e"}}
+            :ns-default exoscale.tools.project
+            :jvm-opts ["-Dclojure.main.report=stderr"]}
+  :test
+  {:extra-deps {sks/test-runner {:local/root "dev"}
+                org.clojure/test.check {:mvn/version "1.1.1"}}
+   :jvm-opts ["-Dclojure.main.report=stderr"]
+
+   :exec-fn test-runner/run
+   :extra-paths ["test"]}
+
+  :quickdoc
+  {:deps {org.babashka/cli {:mvn/version "0.4.36"}
+          io.github.borkdude/quickdoc
+          {:deps/root "jvm"
+           :git/sha "7c8bef54eda28367193ec433af01bb940114f012"}}
+   :main-opts ["-m" "babashka.cli.exec" "quickdoc.api" "quickdoc"]}}}
