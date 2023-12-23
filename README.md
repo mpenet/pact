@@ -43,7 +43,7 @@ How `pact` attempts to handle these:
 * **metadata**: we have a few helpers that allow you to specify/override
   `description`, `format`, `pattern` on top of existing specs, that will later
   show up in the json-schema for these. They also understand spec aliases and
-  pick up the first waling back the spec alias chain.
+  pick up the first walking back the spec alias chain.
   
 By default pact is **strict**, it will throw at generation time if it cannot
 infer the json-schema for a spec, but it will allow you to specify the missing
