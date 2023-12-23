@@ -93,11 +93,12 @@
 
 (def default-opts
   {:property-key-fn name
+   :gen-only-first-and-arg? false
    :strict? false ; will throw on unknown conversion
    :unknown-spec-default {:type "object"}})
 
 (defn set-pred-conformer!
-  ([k schema-fn opts]
+  ([k schema-fn _opts]
    (swap! registry-ref
           (fn [registry-val]
             (-> registry-val
@@ -186,7 +187,7 @@
                                   [:req-un :req]))}))
 
 (defmethod schema `nil?
-  [form opts]
+  [_form _opts]
   {:type "null"})
 
 (defmethod schema `s/nilable
@@ -207,37 +208,37 @@
                   (methods @f))}))
 
 (defmethod schema `enum
-  [values opts]
+  [values _opts]
   {:enum values})
 
 (defmethod schema `string?
-  [form opts]
+  [_form _opts]
   {:type "string"})
 
 (derive `keyword? `string?)
 
 (defmethod schema `uuid?
-  [form opts]
+  [_form _opts]
   {:type "string" :format "uuid"})
 
 (defmethod schema `int?
-  [form opts]
+  [_form _opts]
   {:type "integer" :format "int64"})
 
 (defmethod schema `nat-int?
-  [form opts]
+  [_form _opts]
   {:type "integer"
    :format "int64"
    :minimum 0})
 
 (defmethod schema `pos-int?
-  [form opts]
+  [_form _opts]
   {:type "integer"
    :format "int64"
    :minimum 1})
 
 (defmethod schema `neg-int?
-  [form opts]
+  [_form _opts]
   {:type "integer"
    :maximum -1})
 
@@ -251,33 +252,44 @@
    :exclusiveMaximum true})
 
 (defmethod schema `number?
-  [form opts]
+  [_form _opts]
   {:type "number"})
 
-(derive `float? `number?)
-(derive `double? `number?)
+(defmethod schema `float?
+  [_form _opts]
+  {:type "number" :format "float"})
+
+(defmethod schema `double?
+  [_form _opts]
+  {:type "number" :format "double"})
 
 (defmethod schema `boolean?
-  [form opts]
+  [_form _opts]
   {:type "boolean"})
 
 (defmethod schema `inst?
-  [form opts]
+  [_form _opts]
   {:type "string" :format "date-time"})
 
 (defmethod schema `any?
-  [form opts]
+  [_form _opts]
   {:type "object"})
 
 (derive `map? `any?)
 
 (defmethod schema `s/and
+  [[_ & forms] {:as opts :keys [gen-only-first-and-arg?]}]
+  {:allOf (into []
+                (map #(generate % opts))
+                (if gen-only-first-and-arg?
+                  [(first forms)]
+                  forms))})
+
+(defmethod schema `s/merge
   [[_ & forms] opts]
   {:allOf (into []
                 (map #(generate % opts))
                 forms)})
-
-(derive `s/merge `s/and)
 
 (defmethod schema `s/or
   [[_ & forms] opts]
