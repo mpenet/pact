@@ -6,8 +6,8 @@ Generate json-schema / OpenAPI 3.1+ from clojure specs.
 
 # Rationale
 
-Specs allow us to define contracts, why not re-using these to generate
-json-schema. Spec forms are just "data", should be easy right? 
+Specs allow us to define contracts, why not re-using these to **generate
+json-schema**. Spec forms are just "data", should be easy right?
 
 Well, there are a few challenges:
 * specs can be defined as arbitrary predicates
@@ -33,20 +33,48 @@ How `pact` attempts to handle these:
   json-schema for ::foo will check them in order until it finds enough
   information to do so (from ::baz definition).
   
-* **spec forms/composition of specs**: schemas can be inferred for all clojure.spec forms (s/and & co). In the cases
-  where we cannot infer the schema we provide ways for you to specify what to
-  do. We also provide ways to extend what we generate out of the box.
+* **spec forms/composition of specs**: schemas can be inferred for all
+  clojure.spec forms (s/and & co). In the cases where we cannot infer the schema
+  we provide ways for you to specify what to do. We also provide ways to extend
+  what we generate out of the box.
   
 * **metadata**: we have a few helpers that allow you to specify/override
   `description` and `format` on top of existing specs, that will later show up
   in the json-schema for these.
   
-By default pact is **strict**, it will throw at generation time if it cannot infer
-the json-schema for a spec, allowing you to specify the missing bits safely. It
-can also function in non strict mode where unknowns generate `{:type"object"}`. 
-You can also tune the interpretation of some forms to be less strict, for
-instance having only the first component of a `s/and` to be taken into account
-and a few others like this. But by default we try to cover the full spec.
+By default pact is **strict**, it will throw at generation time if it cannot
+infer the json-schema for a spec, but it will allow you to specify the missing
+bits.
+It can also function in non strict mode where unknowns generate
+`{:type"object"}`. You can also tune the interpretation of some forms to be
+less strict, for instance having only the first component of a `s/and` to be
+taken into account and a few others like this. But by default we try to cover
+the full spec.
+
+`pact` also provides an **openapi generator**, given that openapi 3.1.x+ is
+json-schema compatible it's fairly easy to customize. It mostly sugars the
+creation of paths, component.schemas and few other things, the rest is left to
+the user as it generate just clojure maps (not json).
+
+## Examples
+
+wip
+
+## Extensions
+
+* `s-exp.pact/schema` : multimethod that controls generation of json schema for
+  a spec form
+
+* `s-exp.pact/set-pred-schema!`: allows to set predicate conformer & shema
+  generator for arbitrary predicates found in spec forms.
+
+## Caveats
+
+* `s/keys` with `and`/`or` are just flattened for now, if that doesn't work for
+  what you need, just override the generation for the concerned spec keys.
+
+* `s/cat` generates an `array` type, if that doesn't work for what you need,
+  just override the generation for the concerned spec keys.
 
 ## API 
 
@@ -55,6 +83,13 @@ see [API.md](API.md)
 ## Tests
 
 `clj -X:test`
+
+
+## Todo 
+
+- [ ] tests
+- [ ] ci
+- [ ] cljs support
 
 ## License 
 
