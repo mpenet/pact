@@ -30,6 +30,9 @@
 (defn with-format [k fmt]
   (vary-meta k assoc :format fmt))
 
+(defn with-pattern [k fmt]
+  (vary-meta k assoc :pattern fmt))
+
 (defn find-description
   [k]
   (si/registry-lookup (meta) k :description))
@@ -41,6 +44,10 @@
 (defn find-format
   [k]
   (si/registry-lookup (meta) k :format))
+
+(defn find-pattern
+  [k]
+  (si/registry-lookup (meta) k :pattern))
 
 (declare schema)
 
@@ -104,14 +111,16 @@
         (if-let [schema (find-schema k)]
           schema
           (schema (si/spec-root k) opts))
-        ;; ancestors (si/spec-ancestors k)
         desc (find-description k)
-        fmt (find-format k)]
+        fmt (find-format k)
+        pattern (find-pattern k)]
     (cond-> ret
       desc
       (assoc :description desc)
       fmt
-      (assoc :format fmt))))
+      (assoc :format fmt)
+      pattern
+      (assoc :pattern pattern))))
 
 (def hierarchy (atom (make-hierarchy)))
 
@@ -365,6 +374,7 @@
 (s/def ::ss ::s)
 (s/def ::ssss ::ss)
 (with-format ::s "ip4")
+(with-pattern ::s "^(\\([0-9]{3}\\))?[0-9]{3}-[0-9]{4}$")
 (find-description ::ssss)
 (find-format ::ssss)
 

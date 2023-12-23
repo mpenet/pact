@@ -24,7 +24,9 @@ How `pact` attempts to handle these:
   forms against a set of conformers we hold internally (that you can extend
   yourself), so that you can destructure from the conform call (ex grab argument
   values, or anything really) in order to then generate the appropriate openapi
-  data via a supplied function.
+  data via a supplied function. `pact` comes with a number of useful predicate
+  parsers that allow to generate correct schemas for common cases (numercic
+  comparaisons, length bounds and so on).
   
 * **spec aliases chains**: we ensure that alias chains are understood and walk them
   up trying to find the first spec key that will allow json-schema
@@ -39,8 +41,9 @@ How `pact` attempts to handle these:
   what we generate out of the box.
   
 * **metadata**: we have a few helpers that allow you to specify/override
-  `description` and `format` on top of existing specs, that will later show up
-  in the json-schema for these.
+  `description`, `format`, `pattern` on top of existing specs, that will later
+  show up in the json-schema for these. They also understand spec aliases and
+  pick up the first waling back the spec alias chain.
   
 By default pact is **strict**, it will throw at generation time if it cannot
 infer the json-schema for a spec, but it will allow you to specify the missing
