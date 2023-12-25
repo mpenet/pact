@@ -57,14 +57,16 @@ and a few others like this. But by default we try to cover the full spec.
 
 We do not provide an openapi generator, if you want to generate openapi using
 `pact` it's very easy to do so, there's no need for an extra lib layer to do
-so. That also gives you more control over the way you manage $refs and details
-in openapi.
+so. That also gives you more control over the way you manage $refs and other
+openapi details.
 
 ## Examples
 
 [wip]
 
 ## Extensions
+
+You can extend the way pact generates schemas 2 different ways:
 
 * `s-exp.pact/schema` : multimethod that controls generation of json schema for
   a spec form
