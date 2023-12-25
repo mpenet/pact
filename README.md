@@ -1,8 +1,8 @@
 # pact
 
-/!\ WIP
+/!\ WIP - everything is subject to change
 
-Generate json-schema / OpenAPI 3.1+ from clojure specs.
+Generate json-schema  from clojure specs.
 
 # Rationale
 
@@ -41,40 +41,42 @@ How `pact` attempts to handle these:
   what we generate out of the box.
   
 * **metadata**: we have a few helpers that allow you to specify/override
-  `description`, `format`, `pattern` on top of existing specs, that will later
-  show up in the json-schema for these. They also understand spec aliases and
-  pick up the first walking back the spec alias chain.
+  `title`, `description`, `format`, `pattern`, `$id` on top of existing specs,
+  that will later show up in the json-schema for these. They also understand
+  spec aliases and pick up the first walking back the spec alias chain.
   
 By default pact is **strict**, it will throw at generation time if it cannot
 infer the json-schema for a spec, but it will allow you to specify the missing
 bits.
 It can also function in non strict mode where unknowns generate
-`{:type"object"}`. You can also tune the interpretation of some forms to be
-less strict, for instance having only the first component of a `s/and` to be
-taken into account and a few others like this. But by default we try to cover
-the full spec.
+whatever you specify by default, or just skip what it can't infer in some cases. 
 
-`pact` also provides an **openapi generator**, given that openapi 3.1.x+ is
-json-schema compatible it's fairly easy to customize. It mostly sugars the
-creation of paths, component.schemas and few other things, the rest is left to
-the user as it generate just clojure maps (not json).
+You can also tune the interpretation of some forms to be less strict, for
+instance having only the first component of a `s/and` to be taken into account
+and a few others like this. But by default we try to cover the full spec.
+
+We do not provide an openapi generator, if you want to generate openapi using
+`pact` it's very easy to do so, there's no need for an extra lib layer to do
+so. That also gives you more control over the way you manage $refs and details
+in openapi.
 
 ## Examples
 
-wip
+[wip]
 
 ## Extensions
 
 * `s-exp.pact/schema` : multimethod that controls generation of json schema for
   a spec form
 
-* `s-exp.pact/set-pred-schema!`: allows to set predicate conformer & shema
+* `s-exp.pact/set-pred-schema!`: allows to set predicate conformer & schema
   generator for arbitrary predicates found in spec forms.
 
 ## Caveats
 
-* `s/keys` with `and`/`or` are just flattened for now, if that doesn't work for
-  what you need, just override the generation for the concerned spec keys.
+* `s/keys` using `and`/`or` (ex: `(s/keys :req [(and (or ...)) ])) are just
+  flattened for now, if that doesn't work for what you need, just override the
+  generation for the concerned spec keys.
 
 * `s/cat` generates an `array` type, if that doesn't work for what you need,
   just override the generation for the concerned spec keys.
@@ -86,13 +88,6 @@ see [API.md](API.md)
 ## Tests
 
 `clj -X:test`
-
-
-## Todo 
-
-- [ ] tests
-- [ ] ci
-- [ ] cljs support
 
 ## License 
 
