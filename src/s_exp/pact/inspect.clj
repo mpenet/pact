@@ -1,19 +1,19 @@
 (ns s-exp.pact.inspect
   (:require [clojure.spec.alpha :as s]))
 
-(defn- accept-keyword [x]
+(defn accept-keyword [x]
   (when (qualified-keyword? x)
     x))
 
-(defn- accept-symbol [x]
+(defn accept-symbol [x]
   (when (qualified-symbol? x)
     x))
 
-(defn- accept-set [x]
+(defn accept-set [x]
   (when (set? x)
     x))
 
-(defn- accept-symbol-call [spec]
+(defn accept-symbol-call [spec]
   (when (and (seq? spec)
              (symbol? (first spec)))
     spec))
@@ -47,11 +47,3 @@
     (if-let [parent (-> (parent-spec k) accept-keyword)]
       (recur parent (conj ret parent))
       ret)))
-
-(defn registry-lookup
-  [registry k f]
-  (let [c (get registry k)]
-    (if-let [x (f c)]
-      x
-      (when-let [parent (-> (parent-spec k) accept-keyword)]
-        (recur registry parent f)))))

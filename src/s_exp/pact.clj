@@ -1,9 +1,15 @@
-(ns s-exp.pact.json-schema
+(ns s-exp.pact
   (:refer-clojure :exclude [derive vary-meta meta])
   (:require
    [clojure.spec.alpha :as s]
-   [clojure.walk :as walk]
+   [s-exp.pact.impl :as impl]
    [s-exp.pact.inspect :as si]))
+
+(def default-opts
+  {:property-key-fn name
+   :gen-only-first-and-arg false
+   :strict true ; will throw on unknown conversion
+   :unknown-spec-default nil})
 
 (defonce registry-ref
   (atom #:s-exp.pact.json-schema{:meta {}
@@ -11,91 +17,79 @@
                                  :pred-conformers #{}
                                  :pred-schema {}}))
 
+(defn registry
+  []
+  @registry-ref)
+
+(defn meta
+  ([] (get (registry) :s-exp.pact.json-schema/meta))
+  ([k]
+   (get-in (registry) [:s-exp.pact.json-schema/meta k])))
+
 (defn vary-meta
+  "Like `clojure.core/vary-meta but on spec `k` metadata"
   [k f & args]
   (swap! registry-ref update-in
          [:s-exp.pact.json-schema/meta k]
-         #(apply f % args)))
+         #(apply f % args))
+  k)
 
-(defn meta
-  ([] (get @registry-ref :s-exp.pact.json-schema/meta))
-  ([k]
-   (get-in @registry-ref [:s-exp.pact.json-schema/meta k])))
+(defn assoc-meta
+  "Assoc `k`->`x` on metadata for `spec` "
+  [spec k x]
+  (vary-meta spec assoc k x))
+
+(defn with-id
+  "Adds $id to spec"
+  [spec id]
+  (assoc-meta spec :$id id))
+
+(defn with-title
+  "Add `title` to spec"
+  [k title]
+  (assoc-meta k :title title))
 
 (defn with-description
-  "Adds description to spec"
+  "Add `description` to spec"
   [k description]
-  (vary-meta k assoc :description description))
+  (assoc-meta k :description description))
 
-(defn with-format [k fmt]
-  (vary-meta k assoc :format fmt))
+(defn with-format
+  "Add `format` to spec"
+  [k fmt]
+  (assoc-meta k :format fmt))
 
-(defn with-pattern [k fmt]
-  (vary-meta k assoc :pattern fmt))
+(defn with-pattern
+  "Add `pattern` to spec"
+  [k p]
+  (assoc-meta k :pattern p))
+
+(defn find-title
+  "Find first `title` value in spec hierarchy for spec"
+  [k]
+  (impl/registry-lookup (meta) k :title))
 
 (defn find-description
+  "Find first `description` value in spec hierarchy for spec"
   [k]
-  (si/registry-lookup (meta) k :description))
+  (impl/registry-lookup (meta) k :description))
 
 (defn find-schema
+  "Find first `schema` value in spec hierarchy for spec"
   [k]
-  (si/registry-lookup (meta) k :schema))
+  (impl/registry-lookup (meta) k :schema))
 
 (defn find-format
+  "Find first `format` value in spec hierarchy for spec"
   [k]
-  (si/registry-lookup (meta) k :format))
+  (impl/registry-lookup (meta) k :format))
 
 (defn find-pattern
+  "Find first `pattern` value in spec hierarchy for spec"
   [k]
-  (si/registry-lookup (meta) k :pattern))
+  (impl/registry-lookup (meta) k :pattern))
 
 (declare schema)
-
-(defn strip-core
-  [sym]
-  (cond-> sym
-    (= (namespace sym) "clojure.core")
-    (-> name symbol)))
-
-(defn abbrev [form]
-  (cond->> form
-    (seq? form)
-    (walk/postwalk (fn [form]
-                     (let [qs? (qualified-symbol? form)]
-                       (cond
-                         ;; just treat */% as %
-                         (and qs? (= "%" (name form)))
-                         (symbol "%")
-
-                         ;; it's could be a core symbol, in that case remove ns
-                         qs?
-                         (strip-core form)
-
-                         (and (seq? form)
-                              (contains? #{'fn 'fn*} (first form)))
-                         (last form)
-                         :else form))))))
-
-(defn pred-schema
-  [k match opts]
-  ((get-in @registry-ref [:s-exp.pact.json-schema/pred-schema k])
-   match
-   opts))
-
-(defn pred-conformer
-  [conformers pred opts]
-  (reduce (fn [_ k]
-            (when-let [match (s/conform k (abbrev pred))]
-              (when (not= match :clojure.spec.alpha/invalid)
-                (reduced (pred-schema k match opts)))))
-          nil
-          conformers))
-
-(def default-opts
-  {:property-key-fn name
-   :gen-only-first-and-arg? false
-   :strict? false ; will throw on unknown conversion
-   :unknown-spec-default {:type "object"}})
 
 (defn set-pred-conformer!
   ([k schema-fn _opts]
@@ -107,7 +101,9 @@
   ([k schema-fn]
    (set-pred-conformer! k schema-fn default-opts)))
 
-(defn generate [k opts]
+(defn gen*
+  "Like gen, but doesn't do any caching"
+  [k opts]
   (let [ret
         (if-let [schema (find-schema k)]
           schema
@@ -123,7 +119,9 @@
       pattern
       (assoc :pattern pattern))))
 
-(def hierarchy (atom (make-hierarchy)))
+(def hierarchy
+  "Internal hierarchy used by `schema`"
+  (atom (make-hierarchy)))
 
 (defn derive
   "Like clojure.core/derive but scoped on our `hierarchy`"
@@ -131,7 +129,6 @@
   (swap! hierarchy
          clojure.core/derive tag parent))
 
-;; (def schema nil)
 (defmulti schema
   (fn [form _opts]
     (cond
@@ -141,25 +138,37 @@
   :hierarchy hierarchy)
 
 (defmethod schema `s/coll-of
-  [form opts]
-  {:type "array"
-   :allOf (generate (second form) opts)})
+  [[_ spec & {:as spec-opts :keys [max-count min-count length kind]}]
+   opts]
+  (let [distinct (or (:distinct spec-opts) (= kind `set?))]
+    (cond-> {:type "array"
+             :items (gen* spec opts)}
+      length
+      (assoc :minItems length
+             :maxItems length)
+      max-count
+      (assoc :maxItems max-count)
+      min-count
+      (assoc :minItems min-count)
+      distinct
+      (assoc :uniqueItems true))))
 
 (defmethod schema `coll?
   [_form _opts]
-  {:type ""})
+  {:type "array"})
 
 (derive `list? `coll?)
+(derive `vector? `coll?)
+(derive `sequential? `coll?)
 (derive `s/cat `coll?)
 
 (defmethod schema `s/map-of
   [[_ _ val-spec] opts]
   {:type "object"
-   :patternProperties {"*" (generate val-spec opts)}})
+   :patternProperties {"*" (gen* val-spec opts)}})
 
-(def s-keys-k [:req-un :req :opt :opt-un])
-
-(defn parse-s-keys [form]
+(defn- parse-s-keys
+  [form]
   (-> (apply hash-map (rest form))
       (update-vals #(->> %
                          flatten
@@ -167,24 +176,30 @@
                          (remove #{`or `and})
                          (distinct)))))
 
-(defn keys->properties [pk {:as opts :keys [property-key-fn]}]
-  (let [specs (eduction (mapcat (comp val))
-                        (select-keys pk s-keys-k))]
+(defn- keys->properties [pk {:as opts :keys [property-key-fn]}]
+  (let [specs (eduction
+               (mapcat (comp val))
+               (select-keys pk
+                            [:req-un :req :opt :opt-un]))]
     (into {}
           (map (fn [k]
-                 [(property-key-fn k) (generate k opts)]))
+                 [(property-key-fn k) (gen* k opts)]))
           specs)))
 
 (defmethod schema `s/keys
   [form {:as opts :keys [property-key-fn]}]
-  (let [keys' (parse-s-keys form)]
-    {:type "object"
-     :properties (keys->properties keys' opts)
-     :required (into []
-                     (comp (mapcat val)
-                           (map property-key-fn))
-                     (select-keys keys'
-                                  [:req-un :req]))}))
+  (let [keys' (parse-s-keys form)
+        req-keys (not-empty
+                  (select-keys keys'
+                               [:req-un :req]))]
+    (cond-> {:type "object"
+             :properties (keys->properties keys' opts)}
+      req-keys
+      (assoc :required (into []
+                             (comp (mapcat val)
+                                   (map property-key-fn))
+                             (select-keys keys'
+                                          [:req-un :req]))))))
 
 (defmethod schema `nil?
   [_form _opts]
@@ -193,18 +208,17 @@
 (defmethod schema `s/nilable
   [[_ form] opts]
   {:oneOf [{:type "null"}
-           (generate form opts)]})
+           (gen* form opts)]})
 
 (defmethod schema `s/multi-spec
   [[_ mm tag-key] opts]
-  (let [f (resolve mm)
-        methods (methods @f)]
+  (let [f (resolve mm)]
     {:oneOf (into []
                   (comp
                    (map (fn extract-spec [[dispatch-val _spec]]
                           (si/spec-root (s/form (f {tag-key dispatch-val})))))
                    (map (fn get-json-schema [k]
-                          (generate k opts))))
+                          (gen* k opts))))
                   (methods @f))}))
 
 (defmethod schema `enum
@@ -240,16 +254,16 @@
 (defmethod schema `neg-int?
   [_form _opts]
   {:type "integer"
+   :format "int64"
    :maximum -1})
 
-(derive `int? `integer?)
+(derive `integer? `int?)
 
 (defmethod schema `s/int-in
-  [[_ min max] opts]
+  [[_ min max] _opts]
   {:type "integer"
    :mininum min
-   :maximum max
-   :exclusiveMaximum true})
+   :maximum (dec max)})
 
 (defmethod schema `number?
   [_form _opts]
@@ -278,26 +292,28 @@
 (derive `map? `any?)
 
 (defmethod schema `s/and
-  [[_ & forms] {:as opts :keys [gen-only-first-and-arg?]}]
+  [[_ & forms] {:as opts :keys [gen-only-first-and-arg]}]
   {:allOf (into []
-                (map #(generate % opts))
-                (if gen-only-first-and-arg?
+                (keep #(gen* % opts))
+                (if gen-only-first-and-arg
                   [(first forms)]
                   forms))})
 
 (defmethod schema `s/merge
   [[_ & forms] opts]
   {:allOf (into []
-                (map #(generate % opts))
+                (map #(gen* % opts))
                 forms)})
 
 (defmethod schema `s/or
   [[_ & forms] opts]
-  {:anyOf (into []
+  {:oneOf (into []
                 (comp
                  (partition-all 2)
-                 (map #(generate (second %) opts)))
+                 (map #(gen* (second %) opts)))
                 forms)})
+
+(derive `s/alt `s/or)
 
 ;;
 
@@ -305,10 +321,12 @@
   [spec-key schema-fn]
   (set-pred-conformer! spec-key schema-fn))
 
-(defn parse-fn
+(defn- parse-fn
   [form {:as opts}]
-  (let [{:s-exp.pact.json-schema/keys [pred-conformers]} @registry-ref]
-    (or (pred-conformer pred-conformers form opts)
+  (let [registry-val @registry-ref
+        {:s-exp.pact.json-schema/keys [pred-conformers]}
+        registry-val]
+    (or (impl/pred-conformer registry-val pred-conformers form opts)
         {:type "object" :pact "pred"})))
 
 (defmethod schema `clojure.core/fn
@@ -317,7 +335,7 @@
 
 (defmethod schema :default
   [form opts]
-  (when (:strict? opts)
+  (when (:strict opts)
     (throw (ex-info "Unknown val to openapi generator"
                     {:exoscale.ex/type :exoscale.ex/invalid
                      :form form})))
@@ -331,40 +349,40 @@
                           :count-2 (s/cat :op #{'= '< '> '<= '>= 'not=}
                                           :x any?
                                           :_ simple-symbol?)))
-                  (fn [[_ {:keys [op x]}] _opts]
-                    (merge (case op
-                             >= {:minimum x}
-                             <= {:maximum x}
-                             > {:minimum x
-                                :exclusiveMinimum true}
-                             < {:maximum x
-                                :exclusiveMaximum true}
-                             = {:const x}
-                             not= {:not {:const x}})
-                           {:type "number"})))
+                  (fn [[t {:keys [op x]}] _opts]
+
+                    (case [t op]
+                      ([:count-1 >=] [:count-2 <=]) {:minimum x :type "number"}
+                      ([:count-1 <=] [:count-2 >=]) {:maximum x :type "number"}
+                      ([:count-1 >] [:count-2 <]) {:minimum (inc x) :type "number"}
+                      ([:count-1 <] [:count-2 >]) {:maximum (dec x) :type "number"}
+                      ([:count-1 =] [:count-2 =]) {:const x}
+                      ([:count-1 not=] [:count-2 not=]) {:not {:const x}})))
 
 (s/def ::count+arg (s/spec (s/cat :_ #{'count} :sym simple-symbol?)))
 
-(set-pred-schema! (s/def :s-exp-pact.pred/gte-count
+(set-pred-schema! (s/def :s-exp-pact.pred/count-compare
                     (s/or :count-1
                           (s/cat :op #{'<= '< '> '>= '= 'not=}
-                                 :x number?
-                                 :_cnt ::count+arg)
+                                 :_cnt ::count+arg
+                                 :x number?)
+
                           :count-2
                           (s/cat :op #{'<= '< '> '>= '= 'not=}
-                                 :_cnt ::count+arg
-                                 :x number?)))
-                  (fn [[_ {:keys [op x]}] _opts]
-                    (assoc (case op
-                             = {:const x}
-                             not= {:not {:const x}}
-                             <= {:maxItems x}
-                             >= {:minItems x}
-                             < {:maxItems (dec x)}
-                             > {:minItems (inc x)})
+                                 :x number?
+                                 :_cnt ::count+arg)))
+                  (fn [[t {:keys [op x]}] _opts]
+
+                    (assoc (case [t op]
+                             ([:count-1 =] [:count-2 =]) {:const x}
+                             ([:count-1 not=] [:count-2 not=]) {:not {:const x}}
+                             ([:count-1 <=] [:count-2 >=]) {:maxItems x}
+                             ([:count-1 >=] [:count-2 <=]) {:minItems x}
+                             ([:count-1 <] [:count-2 >]) {:maxItems (dec x)}
+                             ([:count-1 >] [:count-2 <]) {:minItems (inc x)})
                            :type "array")))
 
-(defn set-json-schema!
+(defn- set-json-schema!
   [spec json-schema & _opts]
   (swap! registry-ref
          assoc-in
@@ -376,41 +394,41 @@
   [spec & {:as opts}]
   (let [opts (into default-opts opts)]
     (set-json-schema! spec
-                      (generate spec opts)
+                      (gen* spec opts)
                       opts)))
 
 ;; (:registry default-opts)
-(s/def ::foo (s/keys :req [::bar]))
-(s/def ::bar (s/keys :req [::baz]))
-(s/def ::baz (s/coll-of ::s))
-(s/def ::ss ::s)
-(s/def ::ssss ::ss)
-(with-format ::s "ip4")
-(with-pattern ::s "^(\\([0-9]{3}\\))?[0-9]{3}-[0-9]{4}$")
-(find-description ::ssss)
-(find-format ::ssss)
+;; (s/def ::foo (s/keys :req [::bar]))
+;; (s/def ::bar (s/keys :req [::baz]))
+;; (s/def ::baz (s/coll-of ::s))
+;; (s/def ::ss ::s)
+;; (s/def ::ssss ::ss)
+;; (with-format ::s "ip4")
+;; (with-pattern ::s "^(\\([0-9]{3}\\))?[0-9]{3}-[0-9]{4}$")
+;; (find-description ::ssss)
+;; (find-format ::ssss)
 
 ;; (si/spec-ancestors ::ssss)
 
-(gen ::s)
-(gen ::baz)
-(gen #{:a})
-(gen `(s/map-of string? string?))
-(prn (gen `(s/keys :req-un [::s (or ::baz (and ::s))])))
-(gen `(s/map-of string? (s/coll-of (s/keys :req-un [::s]))))
-(gen `boolean?)
-(gen `(s/coll-of int?))
-(def f (fn [x] (> x 10)))
+;; (gen ::s)
+;; (gen ::baz)
+;; (gen #{:a})
+;; (gen `(s/map-of string? string?))
+;; (prn (gen `(s/keys :req-un [::s (or ::baz (and ::s))])))
+;; (gen `(s/map-of string? (s/coll-of (s/keys :req-un [::s]))))
+;; (gen `boolean?)
+;; (gen `(s/coll-of int?))
+;; (def f (fn [x] (> x 10)))
 
-(prn #'f)
-;; (gen `(s/merge (s/keys :req-un [::s]) (s/keys :req-un [::baz])))
+;; (prn #'f)
+;; ;; (gen `(s/merge (s/keys :req-un [::s]) (s/keys :req-un [::baz])))
 
-(s/def ::ff (s/and (s/coll-of string?) (fn [x] (<= (count x)
-                                                   10))))
-(gen ::ff)
-(gen `(s/or :s string? :u uuid?))
+;; (s/def ::ff (s/and (s/coll-of string?) (fn [x] (<= (count x)
+;;                                                    10))))
+;; (gen ::ff)
+;; (gen `(s/or :s string? :u uuid?))
 
-(gen `(s/int-in 0 10))
+;; (gen `(s/int-in 0 10))
 
 ;; (s/def ::fname string?)
 ;; (s/def ::lname string?)
@@ -432,3 +450,5 @@
 ;; (defmethod tagmm :default [_] (s/keys :req-un [::tag ::different-key]))
 
 ;; (s/def ::example (s/multi-spec tagmm :tag))
+
+;; (gen ::example)
