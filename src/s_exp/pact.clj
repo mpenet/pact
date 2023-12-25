@@ -64,6 +64,11 @@
   [k p]
   (assoc-meta k :pattern p))
 
+(defn find-id
+  "Find first `$id` value in spec hierarchy for spec"
+  [k]
+  (impl/registry-lookup (meta) k :$id))
+
 (defn find-title
   "Find first `title` value in spec hierarchy for spec"
   [k]
@@ -101,17 +106,25 @@
   ([k schema-fn]
    (set-pred-conformer! k schema-fn default-opts)))
 
-(defn gen*
-  "Like gen, but doesn't do any caching"
+(defn json-schema*
+  "Like `json-schema`, but doesn't do any caching"
   [k opts]
   (let [ret
         (if-let [schema (find-schema k)]
           schema
           (schema (si/spec-root k) opts))
+        ;; FIXME these should re-use a single ancestor call instead of walking
+        ;; back the chain again and again
         desc (find-description k)
         fmt (find-format k)
-        pattern (find-pattern k)]
+        pattern (find-pattern k)
+        id (find-id k)
+        title (find-title k)]
     (cond-> ret
+      id
+      (assoc :$id id)
+      title
+      (assoc :title title)
       desc
       (assoc :description desc)
       fmt
@@ -142,7 +155,7 @@
    opts]
   (let [distinct (or (:distinct spec-opts) (= kind `set?))]
     (cond-> {:type "array"
-             :items (gen* spec opts)}
+             :items (json-schema* spec opts)}
       length
       (assoc :minItems length
              :maxItems length)
@@ -165,7 +178,7 @@
 (defmethod schema `s/map-of
   [[_ _ val-spec] opts]
   {:type "object"
-   :patternProperties {"*" (gen* val-spec opts)}})
+   :patternProperties {"*" (json-schema* val-spec opts)}})
 
 (defn- parse-s-keys
   [form]
@@ -183,7 +196,7 @@
                             [:req-un :req :opt :opt-un]))]
     (into {}
           (map (fn [k]
-                 [(property-key-fn k) (gen* k opts)]))
+                 [(property-key-fn k) (json-schema* k opts)]))
           specs)))
 
 (defmethod schema `s/keys
@@ -208,7 +221,7 @@
 (defmethod schema `s/nilable
   [[_ form] opts]
   {:oneOf [{:type "null"}
-           (gen* form opts)]})
+           (json-schema* form opts)]})
 
 (defmethod schema `s/multi-spec
   [[_ mm tag-key] opts]
@@ -218,7 +231,7 @@
                    (map (fn extract-spec [[dispatch-val _spec]]
                           (si/spec-root (s/form (f {tag-key dispatch-val})))))
                    (map (fn get-json-schema [k]
-                          (gen* k opts))))
+                          (json-schema* k opts))))
                   (methods @f))}))
 
 (defmethod schema `enum
@@ -294,7 +307,7 @@
 (defmethod schema `s/and
   [[_ & forms] {:as opts :keys [gen-only-first-and-arg]}]
   {:allOf (into []
-                (keep #(gen* % opts))
+                (keep #(json-schema* % opts))
                 (if gen-only-first-and-arg
                   [(first forms)]
                   forms))})
@@ -302,7 +315,7 @@
 (defmethod schema `s/merge
   [[_ & forms] opts]
   {:allOf (into []
-                (map #(gen* % opts))
+                (map #(json-schema* % opts))
                 forms)})
 
 (defmethod schema `s/or
@@ -310,7 +323,7 @@
   {:oneOf (into []
                 (comp
                  (partition-all 2)
-                 (map #(gen* (second %) opts)))
+                 (map #(json-schema* (second %) opts)))
                 forms)})
 
 (derive `s/alt `s/or)
@@ -390,11 +403,12 @@
          json-schema)
   json-schema)
 
-(defn gen
+(defn json-schema
+  "Generate json-schema for `spec`"
   [spec & {:as opts}]
   (let [opts (into default-opts opts)]
     (set-json-schema! spec
-                      (gen* spec opts)
+                      (json-schema* spec opts)
                       opts)))
 
 ;; (:registry default-opts)

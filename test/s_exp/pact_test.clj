@@ -4,7 +4,7 @@
             [s-exp.pact :as p]))
 
 (deftest test-simple-preds
-  (are [spec schema] (= schema (p/gen spec))
+  (are [spec schema] (= schema (p/json-schema spec))
     `string? {:type "string"}
     `keyword? {:type "string"}
     `number? {:type "number"}
@@ -27,7 +27,7 @@
     `nil? {:type "null"}))
 
 (deftest test-composites
-  (are [spec schema] (= schema (p/gen spec))
+  (are [spec schema] (= schema (p/json-schema spec))
     #{:a :b} {:enum #{:a :b}}
     `(s/and number? int?) {:allOf [{:type "number"} {:type "integer" :format "int64"}]}
     `(s/or :num number? :int int?) {:oneOf [{:type "number"} {:type "integer" :format "int64"}]}
@@ -45,7 +45,7 @@
 (s/def ::baz int?)
 
 (deftest test-s-keys
-  (are [spec schema] (= schema (p/gen spec))
+  (are [spec schema] (= schema (p/json-schema spec))
     `(s/keys :req-un [::foo ::bar] :opt-un [::baz])
     {:type "object",
      :properties
@@ -91,7 +91,7 @@
 (s/def ::ms (s/multi-spec tagmm :tag))
 
 (deftest test-s-multi-spec
-  (are [spec schema] (= schema (p/gen spec))
+  (are [spec schema] (= schema (p/json-schema spec))
     ::ms {:oneOf
           [{:type "object",
             :properties
@@ -116,7 +116,7 @@
   (s/def ::f10 (s/and number? (fn [x] (< 10 x))))
   (s/def ::f11 (s/and number? (fn [x] (= x 10))))
   (s/def ::f12 (s/and number? (fn [x] (not= x 10))))
-  (are [spec schema] (= schema (p/gen spec))
+  (are [spec schema] (= schema (p/json-schema spec))
     ::f1 {:allOf [{:type "number"} {:minimum 10, :type "number"}]}
     ::f2 {:allOf [{:type "number"} {:minimum 11, :type "number"}]}
     ::f3 {:allOf [{:type "number"} {:maximum 10, :type "number"}]}
