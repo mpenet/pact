@@ -18,10 +18,12 @@
                                  :pred-schema {}}))
 
 (defn registry
+  "Returns registry"
   []
   @registry-ref)
 
 (defn meta
+  "Returns metadata registry or metadata for spec `k`"
   ([] (get (registry) :s-exp.pact.json-schema/meta))
   ([k]
    (get-in (registry) [:s-exp.pact.json-schema/meta k])))
@@ -97,6 +99,10 @@
 (declare schema)
 
 (defn set-pred-conformer!
+  "Sets `conformer` and `schema-fn` for predicate parser.
+  If a conformer matches, the bindings we get from the s/conform result will be
+  passed to `schema-fn` in order to generate an appropriate json-schema value
+  for the predicate."
   ([k schema-fn _opts]
    (swap! registry-ref
           (fn [registry-val]
@@ -143,6 +149,7 @@
          clojure.core/derive tag parent))
 
 (defmulti schema
+  "Dispatches on spec form to generate relevant json-schema for passed form"
   (fn [form _opts]
     (cond
       (set? form) `enum

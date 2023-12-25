@@ -12,11 +12,11 @@
     -  [`hierarchy`](#s-exp.pact/hierarchy) - Internal hierarchy used by <code>schema</code>.
     -  [`json-schema`](#s-exp.pact/json-schema) - Generate json-schema for <code>spec</code>.
     -  [`json-schema*`](#s-exp.pact/json-schema*) - Like <code>json-schema</code>, but doesn't do any caching.
-    -  [`meta`](#s-exp.pact/meta)
-    -  [`registry`](#s-exp.pact/registry)
+    -  [`meta`](#s-exp.pact/meta) - Returns metadata registry or metadata for spec <code>k</code>.
+    -  [`registry`](#s-exp.pact/registry) - Returns registry.
     -  [`registry-ref`](#s-exp.pact/registry-ref)
-    -  [`schema`](#s-exp.pact/schema)
-    -  [`set-pred-conformer!`](#s-exp.pact/set-pred-conformer!)
+    -  [`schema`](#s-exp.pact/schema) - Dispatches on spec form to generate relevant json-schema for passed form.
+    -  [`set-pred-conformer!`](#s-exp.pact/set-pred-conformer!) - Sets <code>conformer</code> and <code>schema-fn</code> for predicate parser.
     -  [`set-pred-schema!`](#s-exp.pact/set-pred-schema!)
     -  [`vary-meta`](#s-exp.pact/vary-meta) - Like <code>clojure.core/vary-meta but on spec </code>k` metadata.
     -  [`with-description`](#s-exp.pact/with-description) - Add <code>description</code> to spec.
@@ -55,7 +55,7 @@
 ```
 
 Assoc `k`->`x` on metadata for `spec` 
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L37-L40">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L39-L42">Source</a></sub></p>
 
 ## <a name="s-exp.pact/default-opts">`default-opts`</a><a name="s-exp.pact/default-opts"></a>
 
@@ -70,7 +70,7 @@ Assoc `k`->`x` on metadata for `spec`
 ```
 
 Like clojure.core/derive but scoped on our [`hierarchy`](#s-exp.pact/hierarchy)
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L139-L143">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L145-L149">Source</a></sub></p>
 
 ## <a name="s-exp.pact/find-description">`find-description`</a><a name="s-exp.pact/find-description"></a>
 ``` clojure
@@ -79,7 +79,7 @@ Like clojure.core/derive but scoped on our [`hierarchy`](#s-exp.pact/hierarchy)
 ```
 
 Find first `description` value in spec hierarchy for spec
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L77-L80">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L79-L82">Source</a></sub></p>
 
 ## <a name="s-exp.pact/find-format">`find-format`</a><a name="s-exp.pact/find-format"></a>
 ``` clojure
@@ -88,7 +88,7 @@ Find first `description` value in spec hierarchy for spec
 ```
 
 Find first `format` value in spec hierarchy for spec
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L87-L90">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L89-L92">Source</a></sub></p>
 
 ## <a name="s-exp.pact/find-id">`find-id`</a><a name="s-exp.pact/find-id"></a>
 ``` clojure
@@ -97,7 +97,7 @@ Find first `format` value in spec hierarchy for spec
 ```
 
 Find first `$id` value in spec hierarchy for spec
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L67-L70">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L69-L72">Source</a></sub></p>
 
 ## <a name="s-exp.pact/find-pattern">`find-pattern`</a><a name="s-exp.pact/find-pattern"></a>
 ``` clojure
@@ -106,7 +106,7 @@ Find first `$id` value in spec hierarchy for spec
 ```
 
 Find first `pattern` value in spec hierarchy for spec
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L92-L95">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L94-L97">Source</a></sub></p>
 
 ## <a name="s-exp.pact/find-schema">`find-schema`</a><a name="s-exp.pact/find-schema"></a>
 ``` clojure
@@ -115,7 +115,7 @@ Find first `pattern` value in spec hierarchy for spec
 ```
 
 Find first [`schema`](#s-exp.pact/schema) value in spec hierarchy for spec
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L82-L85">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L84-L87">Source</a></sub></p>
 
 ## <a name="s-exp.pact/find-title">`find-title`</a><a name="s-exp.pact/find-title"></a>
 ``` clojure
@@ -124,7 +124,7 @@ Find first [`schema`](#s-exp.pact/schema) value in spec hierarchy for spec
 ```
 
 Find first `title` value in spec hierarchy for spec
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L72-L75">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L74-L77">Source</a></sub></p>
 
 ## <a name="s-exp.pact/hierarchy">`hierarchy`</a><a name="s-exp.pact/hierarchy"></a>
 
@@ -132,7 +132,7 @@ Find first `title` value in spec hierarchy for spec
 
 
 Internal hierarchy used by [`schema`](#s-exp.pact/schema)
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L135-L137">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L141-L143">Source</a></sub></p>
 
 ## <a name="s-exp.pact/json-schema">`json-schema`</a><a name="s-exp.pact/json-schema"></a>
 ``` clojure
@@ -141,7 +141,7 @@ Internal hierarchy used by [`schema`](#s-exp.pact/schema)
 ```
 
 Generate json-schema for `spec`
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L406-L412">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L413-L419">Source</a></sub></p>
 
 ## <a name="s-exp.pact/json-schema*">`json-schema*`</a><a name="s-exp.pact/json-schema*"></a>
 ``` clojure
@@ -150,7 +150,7 @@ Generate json-schema for `spec`
 ```
 
 Like [`json-schema`](#s-exp.pact/json-schema), but doesn't do any caching
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L109-L133">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L115-L139">Source</a></sub></p>
 
 ## <a name="s-exp.pact/meta">`meta`</a><a name="s-exp.pact/meta"></a>
 ``` clojure
@@ -158,14 +158,18 @@ Like [`json-schema`](#s-exp.pact/json-schema), but doesn't do any caching
 (meta)
 (meta k)
 ```
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L24-L27">Source</a></sub></p>
+
+Returns metadata registry or metadata for spec `k`
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L25-L29">Source</a></sub></p>
 
 ## <a name="s-exp.pact/registry">`registry`</a><a name="s-exp.pact/registry"></a>
 ``` clojure
 
 (registry)
 ```
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L20-L22">Source</a></sub></p>
+
+Returns registry
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L20-L23">Source</a></sub></p>
 
 ## <a name="s-exp.pact/registry-ref">`registry-ref`</a><a name="s-exp.pact/registry-ref"></a>
 
@@ -177,7 +181,9 @@ Like [`json-schema`](#s-exp.pact/json-schema), but doesn't do any caching
 
 
 
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L145-L151">Source</a></sub></p>
+
+Dispatches on spec form to generate relevant json-schema for passed form
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L151-L158">Source</a></sub></p>
 
 ## <a name="s-exp.pact/set-pred-conformer!">`set-pred-conformer!`</a><a name="s-exp.pact/set-pred-conformer!"></a>
 ``` clojure
@@ -185,14 +191,19 @@ Like [`json-schema`](#s-exp.pact/json-schema), but doesn't do any caching
 (set-pred-conformer! k schema-fn _opts)
 (set-pred-conformer! k schema-fn)
 ```
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L99-L107">Source</a></sub></p>
+
+Sets `conformer` and `schema-fn` for predicate parser.
+  If a conformer matches, the bindings we get from the s/conform result will be
+  passed to `schema-fn` in order to generate an appropriate json-schema value
+  for the predicate.
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L101-L113">Source</a></sub></p>
 
 ## <a name="s-exp.pact/set-pred-schema!">`set-pred-schema!`</a><a name="s-exp.pact/set-pred-schema!"></a>
 ``` clojure
 
 (set-pred-schema! spec-key schema-fn)
 ```
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L333-L335">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L340-L342">Source</a></sub></p>
 
 ## <a name="s-exp.pact/vary-meta">`vary-meta`</a><a name="s-exp.pact/vary-meta"></a>
 ``` clojure
@@ -201,7 +212,7 @@ Like [`json-schema`](#s-exp.pact/json-schema), but doesn't do any caching
 ```
 
 Like `clojure.core/vary-meta but on spec `k` metadata
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L29-L35">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L31-L37">Source</a></sub></p>
 
 ## <a name="s-exp.pact/with-description">`with-description`</a><a name="s-exp.pact/with-description"></a>
 ``` clojure
@@ -210,7 +221,7 @@ Like `clojure.core/vary-meta but on spec `k` metadata
 ```
 
 Add `description` to spec
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L52-L55">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L54-L57">Source</a></sub></p>
 
 ## <a name="s-exp.pact/with-format">`with-format`</a><a name="s-exp.pact/with-format"></a>
 ``` clojure
@@ -219,7 +230,7 @@ Add `description` to spec
 ```
 
 Add `format` to spec
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L57-L60">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L59-L62">Source</a></sub></p>
 
 ## <a name="s-exp.pact/with-id">`with-id`</a><a name="s-exp.pact/with-id"></a>
 ``` clojure
@@ -228,7 +239,7 @@ Add `format` to spec
 ```
 
 Adds $id to spec
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L42-L45">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L44-L47">Source</a></sub></p>
 
 ## <a name="s-exp.pact/with-pattern">`with-pattern`</a><a name="s-exp.pact/with-pattern"></a>
 ``` clojure
@@ -237,7 +248,7 @@ Adds $id to spec
 ```
 
 Add `pattern` to spec
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L62-L65">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L64-L67">Source</a></sub></p>
 
 ## <a name="s-exp.pact/with-title">`with-title`</a><a name="s-exp.pact/with-title"></a>
 ``` clojure
@@ -246,7 +257,7 @@ Add `pattern` to spec
 ```
 
 Add `title` to spec
-<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L47-L50">Source</a></sub></p>
+<p><sub><a href="https://github.com/mpenet/pact/blob/main/src/s_exp/pact.clj#L49-L52">Source</a></sub></p>
 
 -----
 # <a name="s-exp.pact.impl">s-exp.pact.impl</a>
