@@ -149,4 +149,9 @@
     (is (= (p/find-title ::meta-test3)
            title))
     (is (= (p/find-pattern ::meta-test3)
-           pattern))))
+           pattern))
+
+    (let [schema {:type "string" :extra "yolo"}]
+      (p/with-schema ::meta-test schema)
+      (is (p/json-schema ::meta-test)
+          schema))))

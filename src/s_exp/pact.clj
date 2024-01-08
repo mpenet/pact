@@ -41,6 +41,11 @@
   [spec k x]
   (vary-meta spec assoc k x))
 
+(defn with-schema
+  "Add `schema` to spec"
+  [k schema]
+  (assoc-meta k :schema schema))
+
 (defn with-id
   "Adds $id to spec"
   [spec id]
