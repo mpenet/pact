@@ -14,8 +14,9 @@ Well, there are a few challenges:
 * specs can also be aliases to other specs
 * specs can be the result of composition of other specs via s/and s/merge
   s/multi-spec s/keys etc
-* specs have no metadata, that makes adding features json-schema has but spec
-  hasn't a bit complicated
+* specs can be *parameterized* (kind of, think `s/coll-of`, `s/int-in` & co)
+* specs have no metadata, that makes adding features json-schema supports but
+  spec doesn't a bit complicated
 
 How `pact` attempts to handle these:
 
