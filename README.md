@@ -24,7 +24,7 @@ How `pact` attempts to handle these:
   we provide ways for you to specify what to do. We also provide ways to extend
   what we generate out of the box.
   
-  * **spec alias chains**: we ensure that alias chains are understood and walk them
+* **spec alias chains**: we ensure that alias chains are understood and walk them
   up trying to find the first spec key that will allow json-schema
   generation. For instance if you have a spec ::foo that is an alias to ::bar
   that is itself an alias to ::baz that is a `string?`, trying to generate
@@ -145,9 +145,9 @@ other openapi details.
 
 You can extend the way pact generates schemas 2 different ways:
 
-* `s-exp.pact/with-schema`: extension point for registered specs
+* `s-exp.pact/with-schema`: extension point for **registered** specs
 * `s-exp.pact/schema` : multimethod that controls generation of json schema for
-  a spec form
+  parameterized spec forms (think, `int-in`, `nilable`, `coll-of` and so on)
   ex: how nilable is implemented
   ```clj
   (defmethod p/schema `s/nilable
@@ -163,7 +163,8 @@ You can extend the way pact generates schemas 2 different ways:
    ```
 
 * `s-exp.pact/set-pred-schema!`: allows to set predicate conformer & schema
-  generator for arbitrary predicates found in spec forms.
+  generator for **arbitrary predicates** found in spec forms, ex: `(s/and
+  string? (fn [s] (str/includes? s something)))`
 
   It takes 2 arguments a spec key, that would be used to potentially conform
   (pattern match) a spec form onto bindings to use for a json-schema, and a
@@ -190,6 +191,6 @@ see [API.md](API.md)
 
 ## License 
 
-Copyright © 2023 Max Penet
+Copyright © 2024 Max Penet
 
 Distributed under the Eclipse Public License version 1.0.
