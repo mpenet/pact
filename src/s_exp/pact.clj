@@ -13,9 +13,28 @@
 
 (defonce registry-ref
   (atom #:s-exp.pact.json-schema{:meta {}
-                                 :schema {}
-                                 :pred-conformers #{}
-                                 :pred-schema {}}))
+                                 :idents {}
+                                 :forms {}
+                                 :preds {}}))
+
+(defn- registry-form
+  [registry-val k]
+  (get-in registry-val [:s-exp.pact.json-schema/forms k]))
+
+(defn- registry-ident
+  [registry-val k]
+  (prn :k k)
+  (get-in registry-val [:s-exp.pact.json-schema/idents k]))
+
+(defn register-form!
+  [form f]
+  (swap! registry-ref update :s-exp.pact.json-schema/forms
+         assoc form f))
+
+(defn register-ident!
+  [ident x]
+  (swap! registry-ref update :s-exp.pact.json-schema/idents
+         assoc ident x))
 
 (defn registry
   "Returns registry"
@@ -31,7 +50,8 @@
 (defn vary-meta
   "Like `clojure.core/vary-meta but on spec `k` metadata"
   [k f & args]
-  (swap! registry-ref update-in
+  (swap! registry-ref
+         update-in
          [:s-exp.pact.json-schema/meta k]
          #(apply f % args))
   k)
@@ -103,7 +123,7 @@
 
 (declare schema)
 
-(defn set-pred-conformer!
+(defn register-pred-conformer!
   "Sets `conformer` and `schema-fn` for predicate parser.
   If a conformer matches, the bindings we get from the s/conform result will be
   passed to `schema-fn` in order to generate an appropriate json-schema value
@@ -111,21 +131,41 @@
   ([k schema-fn _opts]
    (swap! registry-ref
           (fn [registry-val]
-            (-> registry-val
-                (update :s-exp.pact.json-schema/pred-conformers conj k)
-                (assoc-in [:s-exp.pact.json-schema/pred-schema k] schema-fn)))))
+            (assoc-in registry-val
+                      [:s-exp.pact.json-schema/preds k]
+                      schema-fn))))
   ([k schema-fn]
-   (set-pred-conformer! k schema-fn default-opts)))
+   (register-pred-conformer! k schema-fn default-opts)))
+
+(defn resolve-schema
+  [x {:as opts
+      :s-exp.pact.json-schema/keys [idents forms preds]}]
+  (let [registry-val
+        (-> @registry-ref
+            (update :s-exp.pact.json-schema/forms merge forms)
+            (update :s-exp.pact.json-schema/idents merge idents)
+            (update "s-exp.pact.json-schema/preds" merge preds))
+        opts (merge opts registry-val)]
+    (prn :asdf (-> registry-val :s-exp.pact.json-schema/idents :s_exp.pact-test/meta-test))
+    (or (cond
+          (set? x)
+          ((registry-form registry-val `enum-of) x opts)
+
+          (sequential? x)
+          ((registry-form registry-val (first x))
+           (rest x) opts)
+
+          :else (registry-ident registry-val x))
+        (when (:strict registry-val)
+          (throw (ex-info "Unknown val to openapi generator"
+                          {:exoscale.ex/type :exoscale.ex/invalid
+                           :form x})))
+        (:unknown-spec-default registry-val))))
 
 (defn json-schema*
   "Like `json-schema`, but doesn't do any caching"
   [k opts]
-  (let [ret
-        (if-let [schema (find-schema k)]
-          schema
-          (schema (si/spec-root k) opts))
-        ;; FIXME these should re-use a single ancestor call instead of walking
-        ;; back the chain again and again
+  (let [ret (resolve-schema (si/spec-root k) opts)
         desc (find-description k)
         fmt (find-format k)
         pattern (find-pattern k)
@@ -143,58 +183,36 @@
       pattern
       (assoc :pattern pattern))))
 
-(def hierarchy
-  "Internal hierarchy used by `schema`"
-  (atom (make-hierarchy)))
+(register-form!
+ `s/coll-of
+ (fn [[spec & {:as spec-opts :keys [max-count min-count length kind]}] opts]
+   (let [distinct (or (:distinct spec-opts) (= kind `set?))]
+     (cond-> (impl/array-schema {:items (json-schema* spec opts)})
+       length
+       (assoc :minItems length
+              :maxItems length)
+       max-count
+       (assoc :maxItems max-count)
+       min-count
+       (assoc :minItems min-count)
+       distinct
+       (assoc :uniqueItems true)))))
 
-(defn derive
-  "Like clojure.core/derive but scoped on our `hierarchy`"
-  [tag parent]
-  (swap! hierarchy
-         clojure.core/derive tag parent))
+(register-ident! `coll? (impl/array-schema))
+(register-ident! `vector? (impl/array-schema))
+(register-ident! `list? (impl/array-schema))
+(register-ident! `sequential? (impl/array-schema))
+(register-form! `s/cat (fn [& _] (impl/array-schema)))
 
-(defmulti schema
-  "Dispatches on spec form to generate relevant json-schema for passed form"
-  (fn [form _opts]
-    (cond
-      (set? form) `enum
-      (sequential? form) (first form)
-      :else form))
-  :hierarchy hierarchy)
-
-(defmethod schema `s/coll-of
-  [[_ spec & {:as spec-opts :keys [max-count min-count length kind]}]
-   opts]
-  (let [distinct (or (:distinct spec-opts) (= kind `set?))]
-    (cond-> {:type "array"
-             :items (json-schema* spec opts)}
-      length
-      (assoc :minItems length
-             :maxItems length)
-      max-count
-      (assoc :maxItems max-count)
-      min-count
-      (assoc :minItems min-count)
-      distinct
-      (assoc :uniqueItems true))))
-
-(defmethod schema `coll?
-  [_form _opts]
-  {:type "array"})
-
-(derive `list? `coll?)
-(derive `vector? `coll?)
-(derive `sequential? `coll?)
-(derive `s/cat `coll?)
-
-(defmethod schema `s/map-of
-  [[_ _ val-spec] opts]
-  {:type "object"
-   :patternProperties {"*" (json-schema* val-spec opts)}})
+(register-form!
+ `s/map-of
+ (fn [[_ val-spec] opts]
+   {:type "object"
+    :patternProperties {"*" (json-schema* val-spec opts)}}))
 
 (defn- parse-s-keys
   [form]
-  (-> (apply hash-map (rest form))
+  (-> (apply hash-map form)
       (update-vals #(->> %
                          flatten
                          ;; hackish, but will do for now
@@ -211,201 +229,172 @@
                  [(property-key-fn k) (json-schema* k opts)]))
           specs)))
 
-(defmethod schema `s/keys
-  [form {:as opts :keys [property-key-fn]}]
-  (let [keys' (parse-s-keys form)
-        req-keys (not-empty
-                  (select-keys keys'
-                               [:req-un :req]))]
-    (cond-> {:type "object"
-             :properties (keys->properties keys' opts)}
-      req-keys
-      (assoc :required (into []
-                             (comp (mapcat val)
-                                   (map property-key-fn))
-                             (select-keys keys'
-                                          [:req-un :req]))))))
+(register-form!
+ `s/keys
+ (fn [form {:as opts :keys [property-key-fn]}]
+   (let [keys' (parse-s-keys form)
+         req-keys (not-empty
+                   (select-keys keys'
+                                [:req-un :req]))]
+     (cond-> {:type "object"
+              :properties (keys->properties keys' opts)}
+       req-keys
+       (assoc :required (into []
+                              (comp (mapcat val)
+                                    (map property-key-fn))
+                              (select-keys keys'
+                                           [:req-un :req])))))))
 
-(defmethod schema `nil?
-  [_form _opts]
-  {:type "null"})
+(register-ident! `nil? {:type "null"})
 
-(defmethod schema `s/nilable
-  [[_ form] opts]
-  {:oneOf [{:type "null"}
-           (json-schema* form opts)]})
+(register-form!
+ `s/nilable
+ (fn [[form] opts]
+   {:oneOf [{:type "null"}
+            (json-schema* form opts)]}))
 
-(defmethod schema `s/multi-spec
-  [[_ mm tag-key] opts]
-  (let [f (resolve mm)]
-    {:oneOf (into []
-                  (comp
-                   (map (fn extract-spec [[dispatch-val _spec]]
-                          (si/spec-root (s/form (f {tag-key dispatch-val})))))
-                   (map (fn get-json-schema [k]
-                          (json-schema* k opts))))
-                  (methods @f))}))
+(register-form!
+ `s/multi-spec
+ (fn [[mm tag-key] opts]
+   (let [f (resolve mm)]
+     {:oneOf (into []
+                   (comp
+                    (map (fn extract-spec [[dispatch-val _spec]]
+                           (si/spec-root (s/form (f {tag-key dispatch-val})))))
+                    (map (fn get-json-schema [k]
+                           (json-schema* k opts))))
+                   (methods @f))})))
 
-(defmethod schema `enum
-  [values _opts]
-  {:enum values})
+(register-form!
+ `enum-of
+ (fn [values _opts]
+   {:enum values}))
 
-(defmethod schema `string?
-  [_form _opts]
-  {:type "string"})
+(register-ident! `string? (impl/string-schema))
+(register-ident! `keyword? (impl/string-schema))
+(register-ident! `uuid? (impl/string-schema {:format "uuid"}))
+(register-ident! `int? {:type "integer" :format "int64"})
+(register-ident! `integer? {:type "integer" :format "int64"})
+(register-ident! `nat-int?
+                 {:type "integer"
+                  :format "int64"
+                  :minimum 0})
+(register-ident! `pos-int?
+                 {:type "integer"
+                  :format "int64"
+                  :minimum 1})
+(register-ident! `neg-int?
+                 {:type "integer"
+                  :format "int64"
+                  :maximum -1})
 
-(derive `keyword? `string?)
+(register-form!
+ `s/int-in
+ (fn [[min max] _opts]
+   {:type "integer"
+    :mininum min
+    :maximum (dec max)}))
 
-(defmethod schema `uuid?
-  [_form _opts]
-  {:type "string" :format "uuid"})
+(register-ident! `number? {:type "number"})
 
-(defmethod schema `int?
-  [_form _opts]
-  {:type "integer" :format "int64"})
+(register-ident! `float? {:type "number" :format "float"})
+(register-ident! `double? {:type "number" :format "double"})
+(register-ident! `boolean? {:type "boolean"})
+(register-ident! `inst? {:type "string" :format "date-time"})
+(register-ident! `any? {:type "object"})
+(register-ident! `map? {:type "object"})
 
-(defmethod schema `nat-int?
-  [_form _opts]
-  {:type "integer"
-   :format "int64"
-   :minimum 0})
+(register-form!
+ `s/and
+ (fn [[& forms] {:as opts :keys [gen-only-first-and-arg]}]
+   {:allOf (into []
+                 (keep #(json-schema* % opts))
+                 (if gen-only-first-and-arg
+                   [(first forms)]
+                   forms))}))
 
-(defmethod schema `pos-int?
-  [_form _opts]
-  {:type "integer"
-   :format "int64"
-   :minimum 1})
+(register-form!
+ `s/merge
+ (fn [[& forms] opts]
+   {:allOf (into []
+                 (map #(json-schema* % opts))
+                 forms)}))
 
-(defmethod schema `neg-int?
-  [_form _opts]
-  {:type "integer"
-   :format "int64"
-   :maximum -1})
-
-(derive `integer? `int?)
-
-(defmethod schema `s/int-in
-  [[_ min max] _opts]
-  {:type "integer"
-   :mininum min
-   :maximum (dec max)})
-
-(defmethod schema `number?
-  [_form _opts]
-  {:type "number"})
-
-(defmethod schema `float?
-  [_form _opts]
-  {:type "number" :format "float"})
-
-(defmethod schema `double?
-  [_form _opts]
-  {:type "number" :format "double"})
-
-(defmethod schema `boolean?
-  [_form _opts]
-  {:type "boolean"})
-
-(defmethod schema `inst?
-  [_form _opts]
-  {:type "string" :format "date-time"})
-
-(defmethod schema `any?
-  [_form _opts]
-  {:type "object"})
-
-(derive `map? `any?)
-
-(defmethod schema `s/and
-  [[_ & forms] {:as opts :keys [gen-only-first-and-arg]}]
-  {:allOf (into []
-                (keep #(json-schema* % opts))
-                (if gen-only-first-and-arg
-                  [(first forms)]
-                  forms))})
-
-(defmethod schema `s/merge
-  [[_ & forms] opts]
-  {:allOf (into []
-                (map #(json-schema* % opts))
-                forms)})
-
-(defmethod schema `s/or
-  [[_ & forms] opts]
+(defn- or-schema
+  [[& forms] opts]
   {:oneOf (into []
                 (comp
                  (partition-all 2)
                  (map #(json-schema* (second %) opts)))
                 forms)})
 
-(derive `s/alt `s/or)
+(register-form! `s/or or-schema)
+(register-form! `s/alt or-schema)
 
 ;;
 
-(defn set-pred-schema!
+(defn register-pred!
   [spec-key schema-fn]
-  (set-pred-conformer! spec-key schema-fn))
+  (register-pred-conformer! spec-key schema-fn))
 
 (defn- parse-fn
-  [form {:as opts}]
-  (let [registry-val @registry-ref
-        {:s-exp.pact.json-schema/keys [pred-conformers]}
-        registry-val]
-    (or (impl/pred-conformer registry-val pred-conformers form opts)
-        {:type "object" :pact "pred"})))
+  [fn-body opts]
+  (or (impl/pred-conformer fn-body opts)
+      {:type "object" :pact "pred"}))
 
-(defmethod schema `clojure.core/fn
-  [form opts]
-  (parse-fn form opts))
+(register-form!
+ `clojure.core/fn
+ (fn [[args form] opts]
+   (parse-fn form opts)))
 
-(defmethod schema :default
-  [form opts]
-  (when (:strict opts)
-    (throw (ex-info "Unknown val to openapi generator"
-                    {:exoscale.ex/type :exoscale.ex/invalid
-                     :form form})))
-  (:unknown-spec-default opts))
+;; (defmethod schema :default
+;;   [form opts]
+;;   (when (:strict opts)
+;;     (throw (ex-info "Unknown val to openapi generator"
+;;                     {:exoscale.ex/type :exoscale.ex/invalid
+;;                      :form form})))
+;;   (:unknown-spec-default opts))
 
-(set-pred-schema! (s/def :s-exp.pact.json-schema.pred/num-compare
-                    (s/or :count-1
-                          (s/cat :op #{'= '< '> '<= '>= 'not=}
-                                 :_ simple-symbol?
-                                 :x any?)
-                          :count-2 (s/cat :op #{'= '< '> '<= '>= 'not=}
-                                          :x any?
-                                          :_ simple-symbol?)))
-                  (fn [[t {:keys [op x]}] _opts]
+(register-pred! (s/def :s-exp.pact.json-schema.pred/num-compare
+                  (s/or :count-1
+                        (s/cat :op #{'= '< '> '<= '>= 'not=}
+                               :_ simple-symbol?
+                               :x any?)
+                        :count-2 (s/cat :op #{'= '< '> '<= '>= 'not=}
+                                        :x any?
+                                        :_ simple-symbol?)))
+                (fn [[t {:keys [op x]}] _opts]
 
-                    (case [t op]
-                      ([:count-1 >=] [:count-2 <=]) {:minimum x :type "number"}
-                      ([:count-1 <=] [:count-2 >=]) {:maximum x :type "number"}
-                      ([:count-1 >] [:count-2 <]) {:minimum (inc x) :type "number"}
-                      ([:count-1 <] [:count-2 >]) {:maximum (dec x) :type "number"}
-                      ([:count-1 =] [:count-2 =]) {:const x}
-                      ([:count-1 not=] [:count-2 not=]) {:not {:const x}})))
+                  (case [t op]
+                    ([:count-1 >=] [:count-2 <=]) {:minimum x :type "number"}
+                    ([:count-1 <=] [:count-2 >=]) {:maximum x :type "number"}
+                    ([:count-1 >] [:count-2 <]) {:minimum (inc x) :type "number"}
+                    ([:count-1 <] [:count-2 >]) {:maximum (dec x) :type "number"}
+                    ([:count-1 =] [:count-2 =]) {:const x}
+                    ([:count-1 not=] [:count-2 not=]) {:not {:const x}})))
 
 (s/def ::count+arg (s/spec (s/cat :_ #{'count} :sym simple-symbol?)))
 
-(set-pred-schema! (s/def :s-exp-pact.pred/count-compare
-                    (s/or :count-1
-                          (s/cat :op #{'<= '< '> '>= '= 'not=}
-                                 :_cnt ::count+arg
-                                 :x number?)
+(register-pred! (s/def :s-exp-pact.pred/count-compare
+                  (s/or :count-1
+                        (s/cat :op #{'<= '< '> '>= '= 'not=}
+                               :_cnt ::count+arg
+                               :x number?)
 
-                          :count-2
-                          (s/cat :op #{'<= '< '> '>= '= 'not=}
-                                 :x number?
-                                 :_cnt ::count+arg)))
-                  (fn [[t {:keys [op x]}] _opts]
+                        :count-2
+                        (s/cat :op #{'<= '< '> '>= '= 'not=}
+                               :x number?
+                               :_cnt ::count+arg)))
+                (fn [[t {:keys [op x]}] _opts]
 
-                    (assoc (case [t op]
-                             ([:count-1 =] [:count-2 =]) {:const x}
-                             ([:count-1 not=] [:count-2 not=]) {:not {:const x}}
-                             ([:count-1 <=] [:count-2 >=]) {:maxItems x}
-                             ([:count-1 >=] [:count-2 <=]) {:minItems x}
-                             ([:count-1 <] [:count-2 >]) {:maxItems (dec x)}
-                             ([:count-1 >] [:count-2 <]) {:minItems (inc x)})
-                           :type "array")))
+                  (assoc (case [t op]
+                           ([:count-1 =] [:count-2 =]) {:const x}
+                           ([:count-1 not=] [:count-2 not=]) {:not {:const x}}
+                           ([:count-1 <=] [:count-2 >=]) {:maxItems x}
+                           ([:count-1 >=] [:count-2 <=]) {:minItems x}
+                           ([:count-1 <] [:count-2 >]) {:maxItems (dec x)}
+                           ([:count-1 >] [:count-2 <]) {:minItems (inc x)})
+                         :type "array")))
 
 (defn- set-json-schema!
   [spec json-schema & _opts]

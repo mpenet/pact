@@ -104,6 +104,7 @@
 
 (deftest test-predicates-math
   (s/def ::f1 (s/and number? (fn [x] (>= x 10))))
+  (s/def ::f1' (s/and number? #(>= % 10)))
   (s/def ::f2 (s/and number? (fn [x] (> x 10))))
   (s/def ::f3 (s/and number? (fn [x] (<= x 10))))
   (s/def ::f4 (s/and number? (fn [x] (< x 10))))
@@ -118,6 +119,7 @@
   (s/def ::f12 (s/and number? (fn [x] (not= x 10))))
   (are [spec schema] (= schema (p/json-schema spec))
     ::f1 {:allOf [{:type "number"} {:minimum 10, :type "number"}]}
+    ::f1' {:allOf [{:type "number"} {:minimum 10, :type "number"}]}
     ::f2 {:allOf [{:type "number"} {:minimum 11, :type "number"}]}
     ::f3 {:allOf [{:type "number"} {:maximum 10, :type "number"}]}
     ::f4 {:allOf [{:type "number"} {:maximum 9, :type "number"}]}
@@ -152,6 +154,6 @@
            pattern))
 
     (let [schema {:type "string" :extra "yolo"}]
-      (p/with-schema ::meta-test schema)
-      (is (p/json-schema ::meta-test)
-          schema))))
+      (is (= (p/json-schema ::meta-test
+                            #:s-exp.pact.json-schema{:idents {::meta-test schema}})
+             schema)))))

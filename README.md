@@ -147,23 +147,23 @@ other openapi details.
 You can extend the way pact generates schemas 2 different ways:
 
 * `s-exp.pact/with-schema`: extension point for **registered** specs
-* `s-exp.pact/schema` : multimethod that controls generation of json schema for
+* `s-exp.pact/register-ident!`: register schema value for `ident`
+  (qualified-symbol or qualified-keyword, ex: fn symbol or spec keyword)
+* `s-exp.pact/register-form!`: multimethod that controls generation of json schema for
   parameterized spec forms (think, `int-in`, `nilable`, `coll-of` and so on)
   ex: how nilable is implemented
   ```clj
-  (defmethod p/schema `s/nilable
-  [[_ form] opts]
-  {:oneOf [{:type "null"}
-           (p/json-schema* form opts)]})
+(p/register-form!
+ `s/nilable
+ (fn [[form] opts]
+   {:oneOf [{:type "null"}
+            (json-schema* form opts)]}))
            
    ;; or for int? 
-
-  (defmethod p/schema `int?
-    [_form _opts]
-    {:type "integer" :format "int64"})
+(register-ident! `int? {:type "integer" :format "int64"})
    ```
 
-* `s-exp.pact/set-pred-schema!`: allows to set predicate conformer & schema
+* `s-exp.pact/register-pred!`: allows to set predicate conformer & schema
   generator for **arbitrary predicates** found in spec forms, ex: `(s/and
   string? (fn [s] (str/includes? s something)))`
 

@@ -31,19 +31,19 @@
                          :else form))))))
 
 (defn pred-schema
-  [registry-val k match opts]
-  ((get-in registry-val [:s-exp.pact.json-schema/pred-schema k])
+  [k match opts]
+  ((get-in opts [:s-exp.pact.json-schema/pred-schema k])
    match
    opts))
 
 (defn pred-conformer
-  [registry-val conformers pred opts]
-  (reduce (fn [_ k]
-            (when-let [match (s/conform k (abbrev pred))]
-              (when (not= match :clojure.spec.alpha/invalid)
-                (reduced (pred-schema registry-val k match opts)))))
+  [pred {:as opts :s-exp.pact.json-schema/keys [preds]}]
+  (reduce (fn [_ [k f]]
+            (let [match (s/conform k (abbrev pred))]
+              (when-not (= :clojure.spec.alpha/invalid match)
+                (reduced (f match opts)))))
           nil
-          conformers))
+          preds))
 
 (defn registry-lookup
   [registry k f]
@@ -54,3 +54,13 @@
         (recur registry parent f)))))
 
 ;;; schemas impls
+(defn string-schema
+  ""
+  ([] (string-schema {}))
+  ([opts]
+   (merge {:type "string"} opts)))
+
+(defn array-schema
+  ([] {:type "array"})
+  ([opts]
+   (merge (array-schema) opts)))
