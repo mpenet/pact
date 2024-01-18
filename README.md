@@ -162,14 +162,15 @@ You can extend the way pact generates schemas via `json-schema` options or by re
 
 * `s-exp.pact/register-ident!`: registers a new generator for an `ident` (spec key or symbol)
 
-``` clj
+```clj
 (register-ident! `int? {:type "integer" :format "int64"})
 ```
 
 * `s-exp.pact/register-form!`: registers a generator for a `form`, ex: `coll-of`
   parameterized spec forms (think, `int-in`, `nilable`, `coll-of` and so on)
   ex: how nilable is implemented
-  ```clj
+  
+```clj
 (p/register-form!
  `s/nilable
  (fn [[form] opts]
