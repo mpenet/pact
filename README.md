@@ -154,6 +154,7 @@ other openapi details.
 ;; also works for parameterized forms 
 (p/json-schema `(s/coll-of any?) #:s-exp.pact.json-schema{:forms {`s/coll-of (fn [_coll-of-arg _opts] {:foo :bar})}})
 => {:foo :bar}
+```
 
 ## Extensions
 
@@ -174,17 +175,18 @@ You can extend the way pact generates schemas via `json-schema` options or by re
  (fn [[form] opts]
    {:oneOf [{:type "null"}
             (json-schema* form opts)]}))
+```
            
 * `s-exp.pact/register-pred!`: allows to set predicate conformer & schema
-  generator for **arbitrary predicates** found in spec forms, ex: `(s/and
-  string? (fn [s] (str/includes? s something)))`
+  generator for **arbitrary predicates** found in spec forms, ex: `(s/and  string? (fn [s] (str/includes? s something)))`
 
   It takes 2 arguments a spec key, that would be used to potentially conform
   (pattern match) a spec form onto bindings to use for a json-schema, and a
   function that will receive these arguments and return json-schema data
   matching the form.
   
-There are also matching options you can pass to the `json-schema` function to have overrides be applied per call (without being registered globally):
+There are also matching options you can pass to the `json-schema` function to
+have overrides be applied per call (without being registered globally):
 
 * `:s-exp.pact.json-schema/idents` - map of idents -> values
 * `:s-exp.pact.json-schema/forms` - map of forms -> function of form args+opts
