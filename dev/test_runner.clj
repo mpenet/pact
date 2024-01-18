@@ -8,7 +8,7 @@
   {:dir "test"
    :selector (constantly true)
    :capture-output? false
-   :fail-fast? true
+   :fail-fast? false
    :multithread? false
    :reporters [eftest.report.pretty/report]})
 

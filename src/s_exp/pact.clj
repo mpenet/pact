@@ -2,8 +2,7 @@
   (:refer-clojure :exclude [derive vary-meta meta])
   (:require
    [clojure.spec.alpha :as s]
-   [s-exp.pact.impl :as impl]
-   [s-exp.pact.inspect :as si]))
+   [s-exp.pact.impl :as impl]))
 
 (def default-opts
   {:property-key-fn name
@@ -15,16 +14,15 @@
   (atom #:s-exp.pact.json-schema{:meta {}
                                  :idents {}
                                  :forms {}
+                                 :schemas {}
                                  :preds {}}))
 
-(defn- registry-form
-  [registry-val k]
-  (get-in registry-val [:s-exp.pact.json-schema/forms k]))
-
-(defn- registry-ident
-  [registry-val k]
-  (prn :k k)
-  (get-in registry-val [:s-exp.pact.json-schema/idents k]))
+(defn registry
+  "Returns registry"
+  ([]
+   @registry-ref)
+  ([k]
+   (get (registry) k)))
 
 (defn register-form!
   [form f]
@@ -35,17 +33,6 @@
   [ident x]
   (swap! registry-ref update :s-exp.pact.json-schema/idents
          assoc ident x))
-
-(defn registry
-  "Returns registry"
-  []
-  @registry-ref)
-
-(defn meta
-  "Returns metadata registry or metadata for spec `k`"
-  ([] (get (registry) :s-exp.pact.json-schema/meta))
-  ([k]
-   (get-in (registry) [:s-exp.pact.json-schema/meta k])))
 
 (defn vary-meta
   "Like `clojure.core/vary-meta but on spec `k` metadata"
@@ -60,11 +47,6 @@
   "Assoc `k`->`x` on metadata for `spec` "
   [spec k x]
   (vary-meta spec assoc k x))
-
-(defn with-schema
-  "Add `schema` to spec"
-  [k schema]
-  (assoc-meta k :schema schema))
 
 (defn with-id
   "Adds $id to spec"
@@ -91,86 +73,21 @@
   [k p]
   (assoc-meta k :pattern p))
 
-(defn find-id
-  "Find first `$id` value in spec hierarchy for spec"
-  [k]
-  (impl/registry-lookup (meta) k :$id))
-
-(defn find-title
-  "Find first `title` value in spec hierarchy for spec"
-  [k]
-  (impl/registry-lookup (meta) k :title))
-
-(defn find-description
-  "Find first `description` value in spec hierarchy for spec"
-  [k]
-  (impl/registry-lookup (meta) k :description))
-
-(defn find-schema
-  "Find first `schema` value in spec hierarchy for spec"
-  [k]
-  (impl/registry-lookup (meta) k :schema))
-
-(defn find-format
-  "Find first `format` value in spec hierarchy for spec"
-  [k]
-  (impl/registry-lookup (meta) k :format))
-
-(defn find-pattern
-  "Find first `pattern` value in spec hierarchy for spec"
-  [k]
-  (impl/registry-lookup (meta) k :pattern))
-
-(declare schema)
-
-(defn register-pred-conformer!
-  "Sets `conformer` and `schema-fn` for predicate parser.
-  If a conformer matches, the bindings we get from the s/conform result will be
-  passed to `schema-fn` in order to generate an appropriate json-schema value
-  for the predicate."
-  ([k schema-fn _opts]
-   (swap! registry-ref
-          (fn [registry-val]
-            (assoc-in registry-val
-                      [:s-exp.pact.json-schema/preds k]
-                      schema-fn))))
-  ([k schema-fn]
-   (register-pred-conformer! k schema-fn default-opts)))
-
-(defn resolve-schema
-  [x {:as opts
-      :s-exp.pact.json-schema/keys [idents forms preds]}]
-  (let [registry-val
-        (-> @registry-ref
-            (update :s-exp.pact.json-schema/forms merge forms)
-            (update :s-exp.pact.json-schema/idents merge idents)
-            (update "s-exp.pact.json-schema/preds" merge preds))
-        opts (merge opts registry-val)]
-    (prn :asdf (-> registry-val :s-exp.pact.json-schema/idents :s_exp.pact-test/meta-test))
-    (or (cond
-          (set? x)
-          ((registry-form registry-val `enum-of) x opts)
-
-          (sequential? x)
-          ((registry-form registry-val (first x))
-           (rest x) opts)
-
-          :else (registry-ident registry-val x))
-        (when (:strict registry-val)
-          (throw (ex-info "Unknown val to openapi generator"
-                          {:exoscale.ex/type :exoscale.ex/invalid
-                           :form x})))
-        (:unknown-spec-default registry-val))))
-
 (defn json-schema*
-  "Like `json-schema`, but doesn't do any caching"
   [k opts]
-  (let [ret (resolve-schema (si/spec-root k) opts)
-        desc (find-description k)
-        fmt (find-format k)
-        pattern (find-pattern k)
-        id (find-id k)
-        title (find-title k)]
+  (let [spec-chain (impl/spec-chain k)
+        registry-val (registry)
+        ret (or (impl/resolve-schema registry-val spec-chain opts)
+                (when (:strict registry-val)
+                  (throw (ex-info "Unknown val to openapi generator"
+                                  {:exoscale.ex/type :exoscale.ex/invalid
+                                   :spec k})))
+                (:unknown-spec-default registry-val))
+        desc (impl/find-description registry-val spec-chain)
+        fmt (impl/find-format registry-val spec-chain)
+        pattern (impl/find-pattern registry-val spec-chain)
+        id (impl/find-id registry-val spec-chain)
+        title (impl/find-title registry-val spec-chain)]
     (cond-> ret
       id
       (assoc :$id id)
@@ -260,7 +177,7 @@
      {:oneOf (into []
                    (comp
                     (map (fn extract-spec [[dispatch-val _spec]]
-                           (si/spec-root (s/form (f {tag-key dispatch-val})))))
+                           (impl/spec-root (s/form (f {tag-key dispatch-val})))))
                     (map (fn get-json-schema [k]
                            (json-schema* k opts))))
                    (methods @f))})))
@@ -296,7 +213,6 @@
     :maximum (dec max)}))
 
 (register-ident! `number? {:type "number"})
-
 (register-ident! `float? {:type "number" :format "float"})
 (register-ident! `double? {:type "number" :format "double"})
 (register-ident! `boolean? {:type "boolean"})
@@ -334,8 +250,18 @@
 ;;
 
 (defn register-pred!
-  [spec-key schema-fn]
-  (register-pred-conformer! spec-key schema-fn))
+  "Sets `conformer` and `schema-fn` for predicate parser.
+  If a conformer matches, the bindings we get from the s/conform result will be
+  passed to `schema-fn` in order to generate an appropriate json-schema value
+  for the predicate."
+  ([k schema-fn _opts]
+   (swap! registry-ref
+          (fn [registry-val]
+            (assoc-in registry-val
+                      [:s-exp.pact.json-schema/preds k]
+                      schema-fn))))
+  ([k schema-fn]
+   (register-pred! k schema-fn default-opts)))
 
 (defn- parse-fn
   [fn-body opts]
@@ -346,14 +272,6 @@
  `clojure.core/fn
  (fn [[args form] opts]
    (parse-fn form opts)))
-
-;; (defmethod schema :default
-;;   [form opts]
-;;   (when (:strict opts)
-;;     (throw (ex-info "Unknown val to openapi generator"
-;;                     {:exoscale.ex/type :exoscale.ex/invalid
-;;                      :form form})))
-;;   (:unknown-spec-default opts))
 
 (register-pred! (s/def :s-exp.pact.json-schema.pred/num-compare
                   (s/or :count-1
@@ -408,62 +326,6 @@
   "Generate json-schema for `spec`"
   [spec & {:as opts}]
   (let [opts (into default-opts opts)]
-    (set-json-schema! spec
+    (set-json-schema! [spec opts]
                       (json-schema* spec opts)
                       opts)))
-
-;; (:registry default-opts)
-;; (s/def ::foo (s/keys :req [::bar]))
-;; (s/def ::bar (s/keys :req [::baz]))
-;; (s/def ::baz (s/coll-of ::s))
-;; (s/def ::ss ::s)
-;; (s/def ::ssss ::ss)
-;; (with-format ::s "ip4")
-;; (with-pattern ::s "^(\\([0-9]{3}\\))?[0-9]{3}-[0-9]{4}$")
-;; (find-description ::ssss)
-;; (find-format ::ssss)
-
-;; (si/spec-ancestors ::ssss)
-
-;; (gen ::s)
-;; (gen ::baz)
-;; (gen #{:a})
-;; (gen `(s/map-of string? string?))
-;; (prn (gen `(s/keys :req-un [::s (or ::baz (and ::s))])))
-;; (gen `(s/map-of string? (s/coll-of (s/keys :req-un [::s]))))
-;; (gen `boolean?)
-;; (gen `(s/coll-of int?))
-;; (def f (fn [x] (> x 10)))
-
-;; (prn #'f)
-;; ;; (gen `(s/merge (s/keys :req-un [::s]) (s/keys :req-un [::baz])))
-
-;; (s/def ::ff (s/and (s/coll-of string?) (fn [x] (<= (count x)
-;;                                                    10))))
-;; (gen ::ff)
-;; (gen `(s/or :s string? :u uuid?))
-
-;; (gen `(s/int-in 0 10))
-
-;; (s/def ::fname string?)
-;; (s/def ::lname string?)
-;; (s/def ::street string?)
-;; (s/def ::city string?)
-
-;; (s/def ::person (s/keys :req [::fname ::lname]))
-;; (s/def ::address (s/keys :req [::street ::city]))
-
-;; (s/valid? (s/merge ::person ::address))
-;; (gen ::bar)
-
-;; (s/def ::tag #{:a :b :c :d})
-;; (s/def ::example-key keyword?)
-;; (s/def ::different-key keyword?)
-
-;; (defmulti tagmm :tag)
-;; (defmethod tagmm :a [_] (s/keys :req-un [::tag ::example-key]))
-;; (defmethod tagmm :default [_] (s/keys :req-un [::tag ::different-key]))
-
-;; (s/def ::example (s/multi-spec tagmm :tag))
-
-;; (gen ::example)

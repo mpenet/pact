@@ -1,7 +1,8 @@
-(ns s_exp.pact-test
+(ns s-exp.pact-test
   (:require [clojure.spec.alpha :as s]
             [clojure.test :as test :refer [is deftest are]]
-            [s-exp.pact :as p]))
+            [s-exp.pact :as p]
+            [s-exp.pact.impl :as impl]))
 
 (deftest test-simple-preds
   (are [spec schema] (= schema (p/json-schema spec))
@@ -144,16 +145,32 @@
     (s/def ::meta-test2 ::meta-test)
     (s/def ::meta-test3 ::meta-test2)
 
-    (is (= (p/find-title ::meta-test)
+    (is (= (impl/find-title (p/registry) (impl/spec-chain ::meta-test))
            title))
-    (is (= (p/find-title ::meta-test2)
+    (is (= (impl/find-title (p/registry) (impl/spec-chain ::meta-test2))
            title))
-    (is (= (p/find-title ::meta-test3)
+    (is (= (impl/find-title (p/registry) (impl/spec-chain ::meta-test3))
            title))
-    (is (= (p/find-pattern ::meta-test3)
+    (is (= (impl/find-pattern (p/registry) (impl/spec-chain ::meta-test3))
            pattern))
 
-    (let [schema {:type "string" :extra "yolo"}]
-      (is (= (p/json-schema ::meta-test
-                            #:s-exp.pact.json-schema{:idents {::meta-test schema}})
-             schema)))))
+    (let [schema {:extra "yolo"}]
+      (is (= (:extra schema)
+             (:extra (p/json-schema ::meta-test
+                                    #:s-exp.pact.json-schema{:idents {::meta-test schema}}))))
+      (is (= (:extra schema)
+             (:extra (p/json-schema ::meta-test2
+                                    #:s-exp.pact.json-schema{:idents {::meta-test schema}}))))
+      (is (= {:stuff 1} (p/json-schema `(s/coll-of string?)
+                                       #:s-exp.pact.json-schema{:forms {`s/coll-of (fn [_ _] {:stuff 1})}})))
+
+      (is (= {:stuff 1} (p/json-schema `(s/coll-of string?)
+                                       #:s-exp.pact.json-schema{:forms {`s/coll-of (fn [_ _] {:stuff 1})}}))))))
+
+(-> (s/def ::animal string?)
+    (p/with-description "An animal")
+    (p/with-title "Animal")
+    (p/with-pattern "[a-zA-Z]")
+    (p/json-schema))
+
+(p/json-schema `(s/coll-of any?) #:s-exp.pact.json-schema{:forms {`s/coll-of (fn [_ _] {:foo :bar})}})

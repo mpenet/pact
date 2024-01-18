@@ -2,8 +2,87 @@
   (:refer-clojure :exclude [derive vary-meta meta])
   (:require
    [clojure.spec.alpha :as s]
-   [clojure.walk :as walk]
-   [s-exp.pact.inspect :as si]))
+   [clojure.walk :as walk]))
+
+;;; reg
+
+(defn registry-meta
+  "Returns metadata registry or metadata for spec `k`"
+  ([registry-val] (get registry-val :s-exp.pact.json-schema/meta))
+  ([registry-val k]
+   (get (registry-meta registry-val) k)))
+
+(defn registry-form
+  [registry-val k]
+  (get-in registry-val [:s-exp.pact.json-schema/forms k]))
+
+(defn registry-ident
+  [registry-val k]
+  (get-in registry-val [:s-exp.pact.json-schema/idents k]))
+
+(defn resolve-schema
+  [registry-val spec-chain
+   {:as opts
+    :s-exp.pact.json-schema/keys [idents forms preds]}]
+  (let [registry-val
+        (-> registry-val
+            (update :s-exp.pact.json-schema/forms merge forms)
+            (update :s-exp.pact.json-schema/idents merge idents)
+            (update :s-exp.pact.json-schema/preds merge preds))
+        opts (merge opts registry-val)]
+    (reduce (fn resolve-schema* [_ x]
+              (when-let [schema (cond
+                                  (set? x)
+                                  ((registry-form registry-val 's-exp.pact/enum-of)
+                                   x opts)
+
+                                  (sequential? x)
+                                  ((registry-form registry-val (first x))
+                                   (rest x) opts)
+
+                                  (qualified-ident? x)
+                                  (registry-ident registry-val x))]
+                (reduced schema)))
+            nil
+            spec-chain)))
+
+(defn find-key
+  "Find first `prop` value in spec hierarchy for spec"
+  [prop]
+  (fn [registry-val spec-chain]
+    (let [m (registry-meta registry-val)]
+      (reduce (fn find-key* [_ k]
+                (when (qualified-keyword? k)
+                  (when-let [val (get-in m [k prop])]
+                    (reduced val))))
+              nil
+              spec-chain))))
+
+(def find-id
+  "Find first `$id` value in spec hierarchy for spec"
+  (find-key :$id))
+
+(def find-title
+  "Find first `title` value in spec hierarchy for spec"
+  (find-key :title))
+
+(def find-description
+  "Find first `description` value in spec hierarchy for spec"
+  (find-key :description))
+
+;; (def find-schema
+;;   "Find first `schema` value in spec hierarchy for spec"
+;;   (find-key :schema))
+
+(def find-format
+  "Find first `format` value in spec hierarchy for spec"
+  (find-key :format))
+
+(def find-pattern
+  "Find first `pattern` value in spec hierarchy for spec"
+  (find-key :pattern))
+
+;;; Preds
 
 (defn strip-core
   [sym]
@@ -30,30 +109,69 @@
                          (last form)
                          :else form))))))
 
-(defn pred-schema
-  [k match opts]
-  ((get-in opts [:s-exp.pact.json-schema/pred-schema k])
-   match
-   opts))
-
 (defn pred-conformer
   [pred {:as opts :s-exp.pact.json-schema/keys [preds]}]
-  (reduce (fn [_ [k f]]
+  (reduce (fn match-conformer [_ [k f]]
             (let [match (s/conform k (abbrev pred))]
               (when-not (= :clojure.spec.alpha/invalid match)
                 (reduced (f match opts)))))
           nil
           preds))
 
-(defn registry-lookup
-  [registry k f]
-  (let [c (get registry k)]
-    (if-let [x (f c)]
-      x
-      (when-let [parent (-> (si/parent-spec k) si/accept-keyword)]
-        (recur registry parent f)))))
+;;; Spec inspection
+
+(defn accept-keyword [x]
+  (when (qualified-keyword? x)
+    x))
+
+(defn accept-symbol [x]
+  (when (qualified-symbol? x)
+    x))
+
+(defn accept-set [x]
+  (when (set? x)
+    x))
+
+(defn accept-symbol-call [spec]
+  (when (and (seq? spec)
+             (symbol? (first spec)))
+    spec))
+
+(defn spec-form
+  "Return the spec form or nil."
+  [spec]
+  (some-> spec s/get-spec s/form))
+
+(defn spec-root
+  "Determine the main spec root from a spec form."
+  [spec]
+  (let [spec-def (or (spec-form spec)
+                     (accept-symbol spec)
+                     (accept-symbol-call spec)
+                     (accept-set spec))]
+    (cond-> spec-def
+      (qualified-keyword? spec-def)
+      recur)))
+
+(defn parent-spec
+  "Look up for the parent coercer using the spec hierarchy."
+  [k]
+  (or (accept-keyword (s/get-spec k))
+      (accept-keyword (spec-form k))))
+
+(defn spec-chain
+  "Determine the main spec root from a spec form."
+  [spec]
+  (loop [spec spec
+         ret (cond-> [spec])]
+    (let [p (or (parent-spec spec)
+                (spec-form spec))]
+      (if p
+        (recur p (conj ret p))
+        ret))))
 
 ;;; schemas impls
+
 (defn string-schema
   ""
   ([] (string-schema {}))

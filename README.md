@@ -45,6 +45,8 @@ How `pact` attempts to handle these:
   appropriate openapi data via a supplied function. `pact` comes with a number
   of useful predicate parsers that allow to generate correct schemas for common
   cases (numercic comparaisons, length bounds and so on).
+  
+* Enable to register new generators, either globally or on per-call basis.  
 
 By default pact is **strict**, it will throw at generation time if it cannot
 infer the json-schema for a spec, but it will allow you to specify the missing
@@ -135,21 +137,35 @@ other openapi details.
 (-> (s/def ::animal string?)
     (p/with-description "An animal")
     (p/with-title "Animal")
-    (p/with-pattern "[a-zA-Z]"))
+    (p/with-pattern "[a-zA-Z]")
+    (p/json-schema))
+    
+=> {:type "string", :title "Animal", :description "An animal", :pattern "[a-zA-Z]"}
 
-;; custom json-schema for registered spec
-(-> (s/def ::animal string?) ; returns ::animal
-    (p/with-schema {:type "string" :format "..." [...]}))
-```
+;; overriding output, we make string? return something different
+(p/json-schema ::animal #:s-exp.pact.json-schema{:idents {`string? {:type "string" :foo "bar"}}})
+=>
+{:type "string",
+ :foo "bar",
+ :title "Animal",
+ :description "An animal",
+ :pattern "[a-zA-Z]"}
+
+;; also works for parameterized forms 
+(p/json-schema `(s/coll-of any?) #:s-exp.pact.json-schema{:forms {`s/coll-of (fn [_coll-of-arg _opts] {:foo :bar})}})
+=> {:foo :bar}
 
 ## Extensions
 
-You can extend the way pact generates schemas 2 different ways:
+You can extend the way pact generates schemas via `json-schema` options or by registering schema generators
 
-* `s-exp.pact/with-schema`: extension point for **registered** specs
-* `s-exp.pact/register-ident!`: register schema value for `ident`
-  (qualified-symbol or qualified-keyword, ex: fn symbol or spec keyword)
-* `s-exp.pact/register-form!`: multimethod that controls generation of json schema for
+* `s-exp.pact/register-ident!`: registers a new generator for an `ident` (spec key or symbol)
+
+``` clj
+(register-ident! `int? {:type "integer" :format "int64"})
+```
+
+* `s-exp.pact/register-form!`: registers a generator for a `form`, ex: `coll-of`
   parameterized spec forms (think, `int-in`, `nilable`, `coll-of` and so on)
   ex: how nilable is implemented
   ```clj
@@ -159,10 +175,6 @@ You can extend the way pact generates schemas 2 different ways:
    {:oneOf [{:type "null"}
             (json-schema* form opts)]}))
            
-   ;; or for int? 
-(register-ident! `int? {:type "integer" :format "int64"})
-   ```
-
 * `s-exp.pact/register-pred!`: allows to set predicate conformer & schema
   generator for **arbitrary predicates** found in spec forms, ex: `(s/and
   string? (fn [s] (str/includes? s something)))`
@@ -171,7 +183,13 @@ You can extend the way pact generates schemas 2 different ways:
   (pattern match) a spec form onto bindings to use for a json-schema, and a
   function that will receive these arguments and return json-schema data
   matching the form.
+  
+There are also matching options you can pass to the `json-schema` function to have overrides be applied per call (without being registered globally):
 
+* `:s-exp.pact.json-schema/idents` - map of idents -> values
+* `:s-exp.pact.json-schema/forms` - map of forms -> function of form args+opts
+* `:s-exp.pact.json-schema/preds` - map of pred conformer spec key -> generator
+  function which will take the conformed values and options
 
 ## Caveats
 
