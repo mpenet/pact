@@ -154,6 +154,23 @@ other openapi details.
 ;; also works for parameterized forms 
 (p/json-schema `(s/coll-of any?) #:s-exp.pact.json-schema{:forms {`s/coll-of (fn [_coll-of-arg _opts] {:foo :bar})}})
 => {:foo :bar}
+
+;; it understands alias chains
+(s/def ::foo string?)
+(s/def ::bar ::foo)
+(s/def ::baz ::bar)
+(p/json-schema ::baz)
+=> {:type "string"}
+
+;; also inherits all properties from chains
+(p/with-pattern ::bar "[a-zA-Z]")
+(p/json-schema ::baz)
+{:type "string", :pattern "[a-zA-Z]"}
+
+;; and allow overrides at any level
+(with-pattern ::baz "[a-z]")
+(p/json-schema ::baz)
+=> {:type "string", :pattern "[a-z]"}
 ```
 
 ## Extensions
