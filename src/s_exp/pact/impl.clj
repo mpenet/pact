@@ -71,10 +71,6 @@
   "Find first `description` value in spec hierarchy for spec"
   (find-key :description))
 
-;; (def find-schema
-;;   "Find first `schema` value in spec hierarchy for spec"
-;;   (find-key :schema))
-
 (def find-format
   "Find first `format` value in spec hierarchy for spec"
   (find-key :format))
