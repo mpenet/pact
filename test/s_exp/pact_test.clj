@@ -4,6 +4,11 @@
             [s-exp.pact :as p]
             [s-exp.pact.impl :as impl]))
 
+(s/check-asserts true)
+(set-validator! p/registry-ref
+                (fn [x]
+                  (s/assert (s/keys) x)))
+
 (deftest test-simple-preds
   (are [spec schema] (= schema (p/json-schema spec))
     `string? {:type "string"}
@@ -38,7 +43,7 @@
     `(s/map-of any? string?) {:type "object", :patternProperties {"*" {:type "string"}}}
     `(s/map-of int? string?) {:type "object", :patternProperties {"*" {:type "string"}}}
     `(s/cat) {:type "array"}
-    `(s/int-in 0 3) {:type "integer", :mininum 0, :maximum 2}
+    `(s/int-in 0 3) {:type "integer", :minimum 0, :maximum 2}
     `(s/nilable string?) {:oneOf [{:type "null"} {:type "string"}]}))
 
 (s/def ::foo string?)
@@ -157,15 +162,18 @@
     (let [schema {:extra "yolo"}]
       (is (= (:extra schema)
              (:extra (p/json-schema ::meta-test
-                                    #:s-exp.pact.json-schema{:idents {::meta-test schema}}))))
+                                    {:idents {::meta-test schema}}))))
       (is (= (:extra schema)
              (:extra (p/json-schema ::meta-test2
-                                    #:s-exp.pact.json-schema{:idents {::meta-test schema}}))))
+                                    {:idents {::meta-test schema}}))))
       (is (= {:stuff 1} (p/json-schema `(s/coll-of string?)
-                                       #:s-exp.pact.json-schema{:forms {`s/coll-of (fn [_ _] {:stuff 1})}})))
+                                       {:forms {`s/coll-of (fn [_ _] {:stuff 1})}})))
 
-      (is (= {:stuff 1} (p/json-schema `(s/coll-of string?)
-                                       #:s-exp.pact.json-schema{:forms {`s/coll-of (fn [_ _] {:stuff 1})}}))))))
+      (is (= {:stuff 1}
+             (p/json-schema `(s/coll-of string?)
+                            {:forms {`s/coll-of (fn [_ _] {:stuff 1})}})
+             (p/json-schema `(s/coll-of string?)
+                            :forms {`s/coll-of (fn [_ _] {:stuff 1})}))))))
 
 (-> (s/def ::animal string?)
     (p/with-description "An animal")
@@ -173,4 +181,4 @@
     (p/with-pattern "[a-zA-Z]")
     (p/json-schema))
 
-(p/json-schema `(s/coll-of any?) #:s-exp.pact.json-schema{:forms {`s/coll-of (fn [_ _] {:foo :bar})}})
+(p/json-schema `(s/coll-of any?) {:forms {`s/coll-of (fn [_ _] {:foo :bar})}})

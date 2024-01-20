@@ -13,17 +13,18 @@
    (get (registry-meta registry-val) k)))
 
 (defn registry-form
+  "Returns registry form function for key `k`"
   [registry-val k]
   (get-in registry-val [:s-exp.pact.json-schema/forms k]))
 
 (defn registry-ident
+  "Returns registry ident value for key `k`"
   [registry-val k]
   (get-in registry-val [:s-exp.pact.json-schema/idents k]))
 
 (defn resolve-schema
-  [registry-val spec-chain
-   {:as opts
-    :s-exp.pact.json-schema/keys [idents forms preds]}]
+  "Find first schema generator in spec hierarchy"
+  [registry-val spec-chain {:as opts :keys [idents forms preds]}]
   (let [registry-val
         (-> registry-val
             (update :s-exp.pact.json-schema/forms merge forms)
@@ -173,7 +174,6 @@
 ;;; schemas impls
 
 (defn string-schema
-  ""
   ([] (string-schema {}))
   ([opts]
    (merge {:type "string"} opts)))

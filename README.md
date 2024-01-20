@@ -143,7 +143,7 @@ other openapi details.
 => {:type "string", :title "Animal", :description "An animal", :pattern "[a-zA-Z]"}
 
 ;; overriding output, we make string? return something different
-(p/json-schema ::animal #:s-exp.pact.json-schema{:idents {`string? {:type "string" :foo "bar"}}})
+(p/json-schema ::animal {:idents {`string? {:type "string" :foo "bar"}}})
 =>
 {:type "string",
  :foo "bar",
@@ -152,7 +152,7 @@ other openapi details.
  :pattern "[a-zA-Z]"}
 
 ;; also works for parameterized forms 
-(p/json-schema `(s/coll-of any?) #:s-exp.pact.json-schema{:forms {`s/coll-of (fn [_coll-of-arg _opts] {:foo :bar})}})
+(p/json-schema `(s/coll-of any?) {:forms {`s/coll-of (fn [_coll-of-arg _opts] {:foo :bar})}})
 => {:foo :bar}
 
 ;; it understands alias chains
@@ -206,9 +206,9 @@ You can extend the way pact generates schemas via `json-schema` options or by re
 There are also matching options you can pass to the `json-schema` function to
 have overrides be applied per call (without being registered globally):
 
-* `:s-exp.pact.json-schema/idents` - map of idents -> values
-* `:s-exp.pact.json-schema/forms` - map of forms -> function of form args+opts
-* `:s-exp.pact.json-schema/preds` - map of pred conformer spec key -> generator
+* `:idents` - map of idents -> values
+* `:forms` - map of forms -> function of form args+opts
+* `:preds` - map of pred conformer spec key -> generator
   function which will take the conformed values and options
 
 ## Caveats

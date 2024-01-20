@@ -4,7 +4,6 @@
  :slipset.deps-deploy/exec-args {:installer :remote
                                  :sign-releases? false
                                  :repository "clojars"}
-
  :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha5"}}
 
  :aliases

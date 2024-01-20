@@ -1,8 +1,19 @@
 (ns s-exp.pact
-  (:refer-clojure :exclude [derive vary-meta meta])
+  (:refer-clojure :exclude [derive vary-meta meta with-meta])
   (:require
    [clojure.spec.alpha :as s]
    [s-exp.pact.impl :as impl]))
+
+(s/def :s-exp.pact/options
+  (s/keys :opt-un [:s-exp.pact.option/property-key-fn
+                   :s-exp.pact.option/gen-only-first-and-arg
+                   :s-exp.pact.option/strict
+                   :s-exp.pact.option/unknown-spec-default]))
+
+(s/def :s-exp.pact.option/property-key-fn ifn?)
+(s/def :s-exp.pact.option/gen-only-first-and-arg boolean?)
+(s/def :s-exp.pact.option/strict boolean?)
+(s/def :s-exp.pact.option/unknown-spec-default any?)
 
 (def default-opts
   {:property-key-fn name
@@ -14,8 +25,12 @@
   (atom #:s-exp.pact.json-schema{:meta {}
                                  :idents {}
                                  :forms {}
-                                 :schemas {}
                                  :preds {}}))
+
+(s/def :s-exp.pact.json-schema/schema map?)
+(s/def :s-exp.pact.json-schema/forms (s/map-of symbol? ifn?))
+(s/def :s-exp.pact.json-schema/idents (s/map-of qualified-ident? :s-exp.pact.json-schema/schema))
+(s/def :s-exp.pact.json-schema/preds (s/map-of qualified-keyword? ifn?))
 
 (defn registry
   "Returns registry"
@@ -25,11 +40,17 @@
    (get (registry) k)))
 
 (defn register-form!
+  "Registers a `form` for generation. Upon encountering that form (by matching its
+  against first element or sequential symbolic spec values), `json-schema` will
+  then call `f` against its arguments for generation"
   [form f]
   (swap! registry-ref update :s-exp.pact.json-schema/forms
          assoc form f))
 
 (defn register-ident!
+  "Registers an `ident` for generation. Upon encountering a qualified
+  symbol/keyword matching an `ident` in the registry it will return `x` as
+  generated value"
   [ident x]
   (swap! registry-ref update :s-exp.pact.json-schema/idents
          assoc ident x))
@@ -42,6 +63,16 @@
          [:s-exp.pact.json-schema/meta k]
          #(apply f % args))
   k)
+
+(defn with-meta
+  "Sets metadata for `spec` "
+  [spec x]
+  (vary-meta spec (constantly x)))
+
+(defn meta
+  "Returns `spec` metadata"
+  [spec]
+  (get-in @registry-ref [:s-exp.pact.json-schema/meta spec]))
 
 (defn assoc-meta
   "Assoc `k`->`x` on metadata for `spec` "
@@ -64,7 +95,8 @@
   (assoc-meta k :description description))
 
 (defn with-format
-  "Add `format` to spec"
+  "Add `format` to spec.
+  See https://json-schema.org/understanding-json-schema/reference/string#built-in-formats"
   [k fmt]
   (assoc-meta k :format fmt))
 
@@ -73,11 +105,30 @@
   [k p]
   (assoc-meta k :pattern p))
 
-(defn json-schema*
-  [k opts]
-  (let [spec-chain (impl/spec-chain k)
+(defn json-schema
+  "Generate json-schema for `spec`.
+  `opts` support:
+
+  * `property-key-fn` - function that will convert the spec keys to json-schema
+  keys - defaults to `name`
+
+  * `strict` - whether to throw or not upon encountering unknown values for
+  conversion - defaults to `true`
+
+  * `gen-only-first-and-arg` - whether to only attempt generate the first
+  predicate of `s/and` - defaults to `false`
+
+  * `unknown-spec-default` - value to be used for unknown values for conversion
+  - defaults to `nil`"
+  [k & {:as opts
+        :keys [property-key-fn strict gen-only-first-and-arg
+               unknown-spec-default]}]
+  (let [opts (into default-opts opts)
+        spec-chain (impl/spec-chain k)
         registry-val (registry)
-        ret (or (impl/resolve-schema registry-val spec-chain opts)
+        ret (or (impl/resolve-schema registry-val
+                                     spec-chain
+                                     opts)
                 (when (:strict registry-val)
                   (throw (ex-info "Unknown val to openapi generator"
                                   {:exoscale.ex/type :exoscale.ex/invalid
@@ -104,7 +155,7 @@
  `s/coll-of
  (fn [[spec & {:as spec-opts :keys [max-count min-count length kind]}] opts]
    (let [distinct (or (:distinct spec-opts) (= kind `set?))]
-     (cond-> (impl/array-schema {:items (json-schema* spec opts)})
+     (cond-> (impl/array-schema {:items (json-schema spec opts)})
        length
        (assoc :minItems length
               :maxItems length)
@@ -125,7 +176,7 @@
  `s/map-of
  (fn [[_ val-spec] opts]
    {:type "object"
-    :patternProperties {"*" (json-schema* val-spec opts)}}))
+    :patternProperties {"*" (json-schema val-spec opts)}}))
 
 (defn- parse-s-keys
   [form]
@@ -143,7 +194,7 @@
                             [:req-un :req :opt :opt-un]))]
     (into {}
           (map (fn [k]
-                 [(property-key-fn k) (json-schema* k opts)]))
+                 [(property-key-fn k) (json-schema k opts)]))
           specs)))
 
 (register-form!
@@ -168,7 +219,7 @@
  `s/nilable
  (fn [[form] opts]
    {:oneOf [{:type "null"}
-            (json-schema* form opts)]}))
+            (json-schema form opts)]}))
 
 (register-form!
  `s/multi-spec
@@ -179,7 +230,7 @@
                     (map (fn extract-spec [[dispatch-val _spec]]
                            (impl/spec-root (s/form (f {tag-key dispatch-val})))))
                     (map (fn get-json-schema [k]
-                           (json-schema* k opts))))
+                           (json-schema k opts))))
                    (methods @f))})))
 
 (register-form!
@@ -209,7 +260,7 @@
  `s/int-in
  (fn [[min max] _opts]
    {:type "integer"
-    :mininum min
+    :minimum min
     :maximum (dec max)}))
 
 (register-ident! `number? {:type "number"})
@@ -224,7 +275,7 @@
  `s/and
  (fn [[& forms] {:as opts :keys [gen-only-first-and-arg]}]
    {:allOf (into []
-                 (keep #(json-schema* % opts))
+                 (keep #(json-schema % opts))
                  (if gen-only-first-and-arg
                    [(first forms)]
                    forms))}))
@@ -233,7 +284,7 @@
  `s/merge
  (fn [[& forms] opts]
    {:allOf (into []
-                 (map #(json-schema* % opts))
+                 (map #(json-schema % opts))
                  forms)}))
 
 (defn- or-schema
@@ -241,7 +292,7 @@
   {:oneOf (into []
                 (comp
                  (partition-all 2)
-                 (map #(json-schema* (second %) opts)))
+                 (map #(json-schema (second %) opts)))
                 forms)})
 
 (register-form! `s/or or-schema)
@@ -270,7 +321,7 @@
 
 (register-form!
  `clojure.core/fn
- (fn [[args form] opts]
+ (fn [[_args form] opts]
    (parse-fn form opts)))
 
 (register-pred! (s/def :s-exp.pact.json-schema.pred/num-compare
@@ -313,19 +364,3 @@
                            ([:count-1 <] [:count-2 >]) {:maxItems (dec x)}
                            ([:count-1 >] [:count-2 <]) {:minItems (inc x)})
                          :type "array")))
-
-(defn- set-json-schema!
-  [spec json-schema & _opts]
-  (swap! registry-ref
-         assoc-in
-         [:s-exp.pact.json-schema/schema spec]
-         json-schema)
-  json-schema)
-
-(defn json-schema
-  "Generate json-schema for `spec`"
-  [spec & {:as opts}]
-  (let [opts (into default-opts opts)]
-    (set-json-schema! [spec opts]
-                      (json-schema* spec opts)
-                      opts)))
