@@ -23,4 +23,7 @@
           io.github.borkdude/quickdoc
           {:deps/root "jvm"
            :git/sha "7c8bef54eda28367193ec433af01bb940114f012"}}
-   :main-opts ["-m" "babashka.cli.exec" "quickdoc.api" "quickdoc"]}}}
+   :exec-fn quickdoc.api/quickdoc
+   :exec-args {:github/repo "https://github.com/exoscale/canary"
+               :git/branch "master"
+               :source-paths ["src/s_exp/pact.clj"]}}}}
