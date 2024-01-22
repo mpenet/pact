@@ -1,5 +1,7 @@
 # pact
 
+[![Clojars Project](https://img.shields.io/clojars/v/com.s-exp/pact.svg)](https://clojars.org/com.s-exp/pact)
+
 /!\ WIP - everything is subject to change
 
 Tiny libary allowing you to generate json-schema from clojure specs.
