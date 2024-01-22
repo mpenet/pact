@@ -15,7 +15,7 @@ Well, there are a few challenges:
 * specs can be defined as arbitrary predicates
 * specs can also be aliases to other specs
 * specs can be the result of composition of other specs via s/and s/merge
-  s/multi-spec s/keys etc
+  s/multi-spec etc
 * specs can be *parameterized* (kind of, think `s/coll-of`, `s/int-in` & co)
 * specs have no metadata, that makes adding features json-schema supports but
   spec doesn't a bit complicated
@@ -24,8 +24,7 @@ How `pact` attempts to handle these:
 
 * **Spec forms/composition of specs**: schemas can be inferred for all
   clojure.spec forms (s/and & co). In the cases where we cannot infer the schema
-  we provide ways for you to specify what to do. We also provide ways to extend
-  what we generate out of the box.
+  we provide ways for you to specify what to generate.
   
 * **Spec alias chains**: we ensure that alias chains are understood and walk them
   up trying to find the first spec key that will allow json-schema
@@ -41,18 +40,16 @@ How `pact` attempts to handle these:
 
 * **Register new generators**, either globally or on per-call basis.
 
-* **Arbitrary predicates**: Predicate forms parsing is done using spec
-  (conform), with conform, that's all you need to know to do it yourself. We
-  conform predicate forms against a set of conformers we hold internally (that
-  you can extend yourself), so that you can destructure from the conform call
-  (ex grab argument values, or anything really) in order to then generate the
-  appropriate openapi data via a supplied function. `pact` comes with a number
-  of useful predicate parsers that allow to generate correct schemas for common
-  cases (numercic comparaisons, length bounds and so on). This is really an
-  escape hatch, generally you don't have to go that far and can get by
-  registering generators for `idents` or `forms` (more on this later).
+* **Arbitrary predicates**: Predicate forms parsing is done using spec , with
+  conform. We destructure predicate forms via conform, so that you grab any
+  value from them (anything in the body of the function really) in order to then
+  generate the appropriate openapi data via a supplied function that take these
+  bindings as argument. `pact` comes with a number of useful predicate parsers
+  that allow to generate correct schemas for common cases (numercic
+  comparaisons, length bounds and so on). This is really an escape hatch,
+  generally you don't have to go that far and can get by registering generators
+  for `idents` or `forms` (more on this later).
   
-
 By default pact is **strict**, it will throw at generation time if it cannot
 infer the json-schema for a spec, but it will allow you to specify the missing
 bits.
