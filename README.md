@@ -78,7 +78,7 @@ other openapi details.
 => {:allOf [{:type "number"} {:type "integer" :format "int64"}]}
 
 (p/json-schema `(s/or number? int?))
-=> {:oneOf [{:type "number"} {:type "integer" :format "int64"}]}
+=> {:anyOf [{:type "number"} {:type "integer" :format "int64"}]}
 
 (p/json-schema `(s/coll-of string? :max-count 3))
 => {:type "array", :items {:type "string"} :maxItems 3}
@@ -120,7 +120,7 @@ other openapi details.
 (s/def ::ms (s/multi-spec tagmm :tag))
 
 (p/json-schema ::ms)
-=> {:oneOf
+=> {:anyOf
     [{:type "object",
       :properties {"tag" {:enum #{:c :b :d :a}}, "different-key" {:type "string"}}, 
       :required ["tag" "different-key"]}
@@ -194,7 +194,7 @@ You can extend the way pact generates schemas via `json-schema` options or by re
 (p/register-form!
  `s/nilable
  (fn [[form] opts]
-   {:oneOf [{:type "null"}
+   {:anyOf [{:type "null"}
             (json-schema* form opts)]}))
 ```
            

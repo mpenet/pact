@@ -36,15 +36,15 @@
   (are [spec schema] (= schema (p/json-schema spec))
     #{:a :b} {:enum #{:a :b}}
     `(s/and number? int?) {:allOf [{:type "number"} {:type "integer" :format "int64"}]}
-    `(s/or :num number? :int int?) {:oneOf [{:type "number"} {:type "integer" :format "int64"}]}
-    `(s/alt :num number? :int int?) {:oneOf [{:type "number"} {:type "integer" :format "int64"}]}
+    `(s/or :num number? :int int?) {:anyOf [{:type "number"} {:type "integer" :format "int64"}]}
+    `(s/alt :num number? :int int?) {:anyOf [{:type "number"} {:type "integer" :format "int64"}]}
     `(s/coll-of string?) {:type "array", :items {:type "string"}}
     `(s/coll-of string? :max-count 3) {:type "array", :items {:type "string"} :maxItems 3}
     `(s/map-of any? string?) {:type "object", :patternProperties {"*" {:type "string"}}}
     `(s/map-of int? string?) {:type "object", :patternProperties {"*" {:type "string"}}}
     `(s/cat) {:type "array"}
     `(s/int-in 0 3) {:type "integer", :minimum 0, :maximum 2}
-    `(s/nilable string?) {:oneOf [{:type "null"} {:type "string"}]}))
+    `(s/nilable string?) {:anyOf [{:type "null"} {:type "string"}]}))
 
 (s/def ::foo string?)
 (s/def ::bar keyword?)
@@ -98,7 +98,7 @@
 
 (deftest test-s-multi-spec
   (are [spec schema] (= schema (p/json-schema spec))
-    ::ms {:oneOf
+    ::ms {:anyOf
           [{:type "object",
             :properties
             {"tag" {:enum #{:c :b :d :a}}, "different-key" {:type "string"}},

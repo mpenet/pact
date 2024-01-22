@@ -261,14 +261,14 @@
 (register-form!
  `s/nilable
  (fn [[form] opts]
-   {:oneOf [{:type "null"}
+   {:anyOf [{:type "null"}
             (json-schema form opts)]}))
 
 (register-form!
  `s/multi-spec
  (fn [[mm tag-key] opts]
    (let [f (resolve mm)]
-     {:oneOf (into []
+     {:anyOf (into []
                    (comp
                     (map (fn extract-spec [[dispatch-val _spec]]
                            (impl/spec-root (s/form (f {tag-key dispatch-val})))))
@@ -306,7 +306,7 @@
 
 (defn- or-schema
   [[& forms] opts]
-  {:oneOf (into []
+  {:anyOf (into []
                 (comp
                  (partition-all 2)
                  (map #(json-schema (second %) opts)))
