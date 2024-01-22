@@ -14,7 +14,7 @@
  :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha5"}}
 
  :aliases
- {:project {:deps {io.github.exoscale/tools.project {:git/sha "5f24196ebea4dc6e601d201d97b463ea26923c7e"}}
+ {:project {:deps {io.github.exoscale/tools.project {:git/sha "99e6b7a"}}
             :ns-default exoscale.tools.project
             :jvm-opts ["-Dclojure.main.report=stderr"]}
   :test
