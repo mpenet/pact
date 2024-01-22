@@ -4,7 +4,7 @@
 
 /!\ WIP - everything is subject to change
 
-Tiny libary allowing you to generate json-schema from clojure specs.
+Tiny library allowing you to generate json-schema from clojure specs.
 
 # Rationale
 
