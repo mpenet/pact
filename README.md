@@ -133,7 +133,8 @@ other openapi details.
 
 ;; arbitrary predicates 
 
-(p/json-schema `(s/and number? (fn [x] (>= 10 x))))
+(s/def ::p (s/and number? (fn [x] (>= x 10))))
+(p/json-schema ::p)
 => {:allOf [{:type "number"} {:minimum 10, :type "number"}]}
 
 

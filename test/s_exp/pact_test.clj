@@ -174,11 +174,3 @@
                             {:forms {`s/coll-of (fn [_ _] {:stuff 1})}})
              (p/json-schema `(s/coll-of string?)
                             :forms {`s/coll-of (fn [_ _] {:stuff 1})}))))))
-
-(-> (s/def ::animal string?)
-    (p/with-description "An animal")
-    (p/with-title "Animal")
-    (p/with-pattern "[a-zA-Z]")
-    (p/json-schema))
-
-(p/json-schema `(s/coll-of any?) {:forms {`s/coll-of (fn [_ _] {:foo :bar})}})

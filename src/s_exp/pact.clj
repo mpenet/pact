@@ -383,3 +383,6 @@
                            ([:count-1 <] [:count-2 >]) {:maxItems (dec x)}
                            ([:count-1 >] [:count-2 <]) {:minItems (inc x)})
                          :type "array")))
+
+(s/def ::f (s/and number? (fn [x] (>= x 10))))
+(json-schema ::f)
