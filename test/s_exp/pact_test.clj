@@ -150,13 +150,13 @@
     (s/def ::meta-test2 ::meta-test)
     (s/def ::meta-test3 ::meta-test2)
 
-    (is (= (impl/find-title (p/registry) (impl/spec-chain ::meta-test))
+    (is (= (p/find-title (p/registry) (impl/spec-chain ::meta-test))
            title))
-    (is (= (impl/find-title (p/registry) (impl/spec-chain ::meta-test2))
+    (is (= (p/find-title (p/registry) (impl/spec-chain ::meta-test2))
            title))
-    (is (= (impl/find-title (p/registry) (impl/spec-chain ::meta-test3))
+    (is (= (p/find-title (p/registry) (impl/spec-chain ::meta-test3))
            title))
-    (is (= (impl/find-pattern (p/registry) (impl/spec-chain ::meta-test3))
+    (is (= (p/find-pattern (p/registry) (impl/spec-chain ::meta-test3))
            pattern))
 
     (let [schema {:extra "yolo"}]

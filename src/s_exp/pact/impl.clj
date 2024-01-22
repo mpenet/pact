@@ -22,7 +22,7 @@
   [registry-val k]
   (get-in registry-val [:s-exp.pact.json-schema/idents k]))
 
-(defn resolve-schema
+(defn find-schema
   "Find first schema generator in spec hierarchy"
   [registry-val spec-chain {:as opts :keys [idents forms preds]}]
   (let [registry-val
@@ -58,26 +58,6 @@
                     (reduced val))))
               nil
               spec-chain))))
-
-(def find-id
-  "Find first `$id` value in spec hierarchy for spec"
-  (find-key :$id))
-
-(def find-title
-  "Find first `title` value in spec hierarchy for spec"
-  (find-key :title))
-
-(def find-description
-  "Find first `description` value in spec hierarchy for spec"
-  (find-key :description))
-
-(def find-format
-  "Find first `format` value in spec hierarchy for spec"
-  (find-key :format))
-
-(def find-pattern
-  "Find first `pattern` value in spec hierarchy for spec"
-  (find-key :pattern))
 
 ;;; Preds
 

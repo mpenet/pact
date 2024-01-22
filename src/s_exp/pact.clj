@@ -55,6 +55,30 @@
   (swap! registry-ref update :s-exp.pact.json-schema/idents
          assoc ident x))
 
+(def find-id
+  "Find first `$id` value in spec hierarchy for spec"
+  (impl/find-key :$id))
+
+(def find-title
+  "Find first `title` value in spec hierarchy for spec"
+  (impl/find-key :title))
+
+(def find-description
+  "Find first `description` value in spec hierarchy for spec"
+  (impl/find-key :description))
+
+(def find-format
+  "Find first `format` value in spec hierarchy for spec"
+  (impl/find-key :format))
+
+(def find-pattern
+  "Find first `pattern` value in spec hierarchy for spec"
+  (impl/find-key :pattern))
+
+(def find-schema
+  "Find first `schema` value in spec hierarchy for spec"
+  impl/find-schema)
+
 (defn vary-meta
   "Like `clojure.core/vary-meta but on spec `k` metadata"
   [k f & args]
@@ -126,19 +150,19 @@
   (let [opts (into default-opts opts)
         spec-chain (impl/spec-chain k)
         registry-val (registry)
-        ret (or (impl/resolve-schema registry-val
-                                     spec-chain
-                                     opts)
+        ret (or (find-schema registry-val
+                             spec-chain
+                             opts)
                 (when (:strict registry-val)
                   (throw (ex-info "Unknown val to openapi generator"
                                   {:exoscale.ex/type :exoscale.ex/invalid
                                    :spec k})))
                 (:unknown-spec-default registry-val))
-        desc (impl/find-description registry-val spec-chain)
-        fmt (impl/find-format registry-val spec-chain)
-        pattern (impl/find-pattern registry-val spec-chain)
-        id (impl/find-id registry-val spec-chain)
-        title (impl/find-title registry-val spec-chain)]
+        desc (find-description registry-val spec-chain)
+        fmt (find-format registry-val spec-chain)
+        pattern (find-pattern registry-val spec-chain)
+        id (find-id registry-val spec-chain)
+        title (find-title registry-val spec-chain)]
     (cond-> ret
       id
       (assoc :$id id)
@@ -150,6 +174,31 @@
       (assoc :format fmt)
       pattern
       (assoc :pattern pattern))))
+
+;; idents
+
+(register-ident! `nil? {:type "null"})
+(register-ident! `string? (impl/string-schema))
+(register-ident! `keyword? (impl/string-schema))
+(register-ident! `uuid? (impl/string-schema {:format "uuid"}))
+(register-ident! `boolean? {:type "boolean"})
+(register-ident! `inst? {:type "string" :format "date-time"})
+(register-ident! `any? {:type "object"})
+(register-ident! `map? {:type "object"})
+(register-ident! `number? {:type "number"})
+(register-ident! `int? {:type "integer" :format "int64"})
+(register-ident! `integer? {:type "integer" :format "int64"})
+(register-ident! `nat-int? {:type "integer" :format "int64" :minimum 0})
+(register-ident! `pos-int? {:type "integer" :format "int64" :minimum 1})
+(register-ident! `neg-int? {:type "integer" :format "int64" :maximum -1})
+(register-ident! `float? {:type "number" :format "float"})
+(register-ident! `double? {:type "number" :format "double"})
+(register-ident! `coll? (impl/array-schema))
+(register-ident! `vector? (impl/array-schema))
+(register-ident! `list? (impl/array-schema))
+(register-ident! `sequential? (impl/array-schema))
+
+;;; forms
 
 (register-form!
  `s/coll-of
@@ -166,10 +215,6 @@
        distinct
        (assoc :uniqueItems true)))))
 
-(register-ident! `coll? (impl/array-schema))
-(register-ident! `vector? (impl/array-schema))
-(register-ident! `list? (impl/array-schema))
-(register-ident! `sequential? (impl/array-schema))
 (register-form! `s/cat (fn [& _] (impl/array-schema)))
 
 (register-form!
@@ -213,8 +258,6 @@
                               (select-keys keys'
                                            [:req-un :req])))))))
 
-(register-ident! `nil? {:type "null"})
-
 (register-form!
  `s/nilable
  (fn [[form] opts]
@@ -238,38 +281,12 @@
  (fn [values _opts]
    {:enum values}))
 
-(register-ident! `string? (impl/string-schema))
-(register-ident! `keyword? (impl/string-schema))
-(register-ident! `uuid? (impl/string-schema {:format "uuid"}))
-(register-ident! `int? {:type "integer" :format "int64"})
-(register-ident! `integer? {:type "integer" :format "int64"})
-(register-ident! `nat-int?
-                 {:type "integer"
-                  :format "int64"
-                  :minimum 0})
-(register-ident! `pos-int?
-                 {:type "integer"
-                  :format "int64"
-                  :minimum 1})
-(register-ident! `neg-int?
-                 {:type "integer"
-                  :format "int64"
-                  :maximum -1})
-
 (register-form!
  `s/int-in
  (fn [[min max] _opts]
    {:type "integer"
     :minimum min
     :maximum (dec max)}))
-
-(register-ident! `number? {:type "number"})
-(register-ident! `float? {:type "number" :format "float"})
-(register-ident! `double? {:type "number" :format "double"})
-(register-ident! `boolean? {:type "boolean"})
-(register-ident! `inst? {:type "string" :format "date-time"})
-(register-ident! `any? {:type "object"})
-(register-ident! `map? {:type "object"})
 
 (register-form!
  `s/and
@@ -323,6 +340,8 @@
  `clojure.core/fn
  (fn [[_args form] opts]
    (parse-fn form opts)))
+
+;;; preds
 
 (register-pred! (s/def :s-exp.pact.json-schema.pred/num-compare
                   (s/or :count-1
