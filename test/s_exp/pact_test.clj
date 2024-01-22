@@ -42,7 +42,7 @@
     `(s/coll-of string? :max-count 3) {:type "array", :items {:type "string"} :maxItems 3}
     `(s/map-of any? string?) {:type "object", :patternProperties {"*" {:type "string"}}}
     `(s/map-of int? string?) {:type "object", :patternProperties {"*" {:type "string"}}}
-    `(s/cat) {:type "array"}
+    `(s/cat :foo (s/* string?)) {:type "array" :items {:anyOf [{:items [{:type "string"}], :type "array"}]}}
     `(s/int-in 0 3) {:type "integer", :minimum 0, :maximum 2}
     `(s/nilable string?) {:anyOf [{:type "null"} {:type "string"}]}))
 

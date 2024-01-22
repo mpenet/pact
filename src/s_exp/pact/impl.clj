@@ -31,7 +31,7 @@
             (update :s-exp.pact.json-schema/idents merge idents)
             (update :s-exp.pact.json-schema/preds merge preds))
         opts (merge opts registry-val)]
-    (reduce (fn resolve-schema* [_ x]
+    (reduce (fn find-schema* [_ x]
               (when-let [schema (cond
                                   (set? x)
                                   ((registry-form registry-val 's-exp.pact/enum-of)
@@ -151,10 +151,25 @@
 
 (defn string-schema
   ([] (string-schema {}))
-  ([opts]
+  ([& {:as opts}]
    (merge {:type "string"} opts)))
 
 (defn array-schema
   ([] {:type "array"})
-  ([opts]
+  ([& {:as opts}]
    (merge (array-schema) opts)))
+
+(defn int-schema
+  ([] {:type "integer"})
+  ([& {:as opts}]
+   (merge (int-schema) opts)))
+
+(defn object-schema
+  ([] {:type "object"})
+  ([& {:as opts}]
+   (merge (object-schema) opts)))
+
+(defn number-schema
+  ([] {:type "number"})
+  ([& {:as opts}]
+   (merge (number-schema) opts)))

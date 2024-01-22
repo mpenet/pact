@@ -214,15 +214,6 @@ have overrides be applied per call (without being registered globally):
 * `:preds` - map of pred conformer spec key -> generator
   function which will take the conformed values and options
 
-## Caveats
-
-* `s/keys` using `and`/`or` (ex: `(s/keys :req [(and (or ...)) ])) are just
-  flattened for now, if that doesn't work for what you need, just override the
-  generation for the concerned spec keys.
-
-* `s/cat` generates an `array` type, if that doesn't work for what you need,
-  just override the generation for the concerned spec keys.
-
 ## API 
 
 see [API.md](API.md)
@@ -234,13 +225,6 @@ see [API.md](API.md)
 # Installation
 
 [![Clojars Project](https://img.shields.io/clojars/v/com.s-exp/pact.svg)](https://clojars.org/com.s-exp/pact)
-
-## Alternatives
-
-There are a few libraries in the same area for clojure, namely spec-tools and
-malli. Both with their own specificities. 
-
-Pact is obviously focused on clojure.spec . 
 
 ## License 
 

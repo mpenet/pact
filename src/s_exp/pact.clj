@@ -180,22 +180,41 @@
 (register-ident! `nil? {:type "null"})
 (register-ident! `string? (impl/string-schema))
 (register-ident! `keyword? (impl/string-schema))
-(register-ident! `uuid? (impl/string-schema {:format "uuid"}))
+(register-ident! `qualified-keyword? (impl/string-schema))
+(register-ident! `simple-keyword? (impl/string-schema))
+(register-ident! `ident? (impl/string-schema))
+(register-ident! `qualified-ident? (impl/string-schema))
+(register-ident! `simple-ident? (impl/string-schema))
+(register-ident! `symbol? (impl/string-schema))
+(register-ident! `qualified-symbol? (impl/string-schema))
+(register-ident! `simple-symbol? (impl/string-schema))
+(register-ident! `uuid? (impl/string-schema :format "uuid"))
+(register-ident! `uri? (impl/string-schema :format "uri"))
 (register-ident! `boolean? {:type "boolean"})
-(register-ident! `inst? {:type "string" :format "date-time"})
-(register-ident! `any? {:type "object"})
-(register-ident! `map? {:type "object"})
-(register-ident! `number? {:type "number"})
-(register-ident! `int? {:type "integer" :format "int64"})
-(register-ident! `integer? {:type "integer" :format "int64"})
-(register-ident! `nat-int? {:type "integer" :format "int64" :minimum 0})
-(register-ident! `pos-int? {:type "integer" :format "int64" :minimum 1})
-(register-ident! `neg-int? {:type "integer" :format "int64" :maximum -1})
-(register-ident! `float? {:type "number" :format "float"})
-(register-ident! `double? {:type "number" :format "double"})
+(register-ident! `true? {:const true})
+(register-ident! `false? {:const false})
+(register-ident! `inst? (impl/string-schema :format "date-time"))
+(register-ident! `any? (impl/object-schema))
+(register-ident! `some? (impl/object-schema))
+(register-ident! `map? (impl/object-schema))
+(register-ident! `number? (impl/number-schema))
+(register-ident! `int? (impl/int-schema :format "int64"))
+(register-ident! `pos? (impl/int-schema :format "int64" :minimum 0))
+(register-ident! `integer? (impl/int-schema :format "int64"))
+(register-ident! `nat-int? (impl/int-schema :format "int64" :minimum 0))
+(register-ident! `pos-int? (impl/int-schema :format "int64" :minimum 1))
+(register-ident! `neg-int? (impl/int-schema :format "int64" :maximum -1))
+(register-ident! `neg? (impl/int-schema :format "int64" :maximum -1))
+(register-ident! `float? (impl/number-schema :format "float"))
+(register-ident! `double? (impl/number-schema :format "double"))
+(register-ident! `decimal? (impl/number-schema :format "double"))
+(register-ident! `rational? (impl/number-schema :format "double"))
+(register-ident! `zero? {:const 0})
 (register-ident! `coll? (impl/array-schema))
+(register-ident! `empty? (impl/array-schema :maxItems 0 :minItems 0))
 (register-ident! `vector? (impl/array-schema))
 (register-ident! `list? (impl/array-schema))
+(register-ident! `set? (impl/array-schema :uniqueItems true))
 (register-ident! `sequential? (impl/array-schema))
 
 ;;; forms
@@ -204,7 +223,7 @@
  `s/coll-of
  (fn [[spec & {:as spec-opts :keys [max-count min-count length kind]}] opts]
    (let [distinct (or (:distinct spec-opts) (= kind `set?))]
-     (cond-> (impl/array-schema {:items (json-schema spec opts)})
+     (cond-> (impl/array-schema :items (json-schema spec opts))
        length
        (assoc :minItems length
               :maxItems length)
@@ -215,13 +234,44 @@
        distinct
        (assoc :uniqueItems true)))))
 
-(register-form! `s/cat (fn [& _] (impl/array-schema)))
+(register-form! `s/cat
+                (fn [pairs opts]
+                  (impl/array-schema
+                   :items
+                   {:anyOf
+                    (map (fn [[_k spec]]
+                           (json-schema spec opts))
+                         (partition-all 2 pairs))})))
+
+(register-form! `s/*
+                (fn [spec opts]
+                  (impl/array-schema
+                   :items (map (fn [spec] (json-schema spec opts)) spec))))
+
+(register-form! `s/+
+                (fn [more opts]
+                  (impl/array-schema
+                   :items (map (fn [spec] (json-schema spec opts)) more)
+                   :minItems 1)))
+
+(register-form! `s/?
+                (fn [more opts]
+                  (impl/array-schema
+                   :items (map (fn [spec] (json-schema spec opts)) more)
+                   :minItems 0)))
 
 (register-form!
  `s/map-of
  (fn [[_ val-spec] opts]
    {:type "object"
     :patternProperties {"*" (json-schema val-spec opts)}}))
+
+(register-form!
+ `s/tuple
+ (fn [[_ & specs] opts]
+   (impl/array-schema
+    :items (map (fn [spec] (json-schema spec opts))
+                specs))))
 
 (defn- parse-s-keys
   [form]
@@ -383,6 +433,3 @@
                            ([:count-1 <] [:count-2 >]) {:maxItems (dec x)}
                            ([:count-1 >] [:count-2 <]) {:minItems (inc x)})
                          :type "array")))
-
-(s/def ::f (s/and number? (fn [x] (>= x 10))))
-(json-schema ::f)
