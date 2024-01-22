@@ -4,6 +4,13 @@
  :slipset.deps-deploy/exec-args {:installer :remote
                                  :sign-releases? false
                                  :repository "clojars"}
+ :exoscale.project/pom-data
+ [[:licenses
+   [:license
+    [:name "Eclipse Public License version 1.0"]
+    [:url "https://opensource.org/license/epl-1-0/"]
+    [:distribution "repo"]]]]
+
  :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha5"}}
 
  :aliases
