@@ -2,6 +2,12 @@
 -  [`s-exp.pact`](#s-exp.pact) 
     -  [`assoc-meta`](#s-exp.pact/assoc-meta) - Assoc <code>k</code>-><code>x</code> on metadata for <code>spec</code>.
     -  [`default-opts`](#s-exp.pact/default-opts)
+    -  [`find-description`](#s-exp.pact/find-description) - Find first <code>description</code> value in spec hierarchy for spec.
+    -  [`find-format`](#s-exp.pact/find-format) - Find first <code>format</code> value in spec hierarchy for spec.
+    -  [`find-id`](#s-exp.pact/find-id) - Find first <code>$id</code> value in spec hierarchy for spec.
+    -  [`find-pattern`](#s-exp.pact/find-pattern) - Find first <code>pattern</code> value in spec hierarchy for spec.
+    -  [`find-schema`](#s-exp.pact/find-schema) - Find first <code>schema</code> value in spec hierarchy for spec.
+    -  [`find-title`](#s-exp.pact/find-title) - Find first <code>title</code> value in spec hierarchy for spec.
     -  [`json-schema`](#s-exp.pact/json-schema) - Generate json-schema for <code>spec</code>.
     -  [`meta`](#s-exp.pact/meta) - Returns <code>spec</code> metadata.
     -  [`register-form!`](#s-exp.pact/register-form!) - Registers a <code>form</code> for generation.
@@ -32,13 +38,61 @@
 ```
 
 Assoc `k`->`x` on metadata for `spec` 
-<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L77-L80">Source</a></sub></p>
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L101-L104">Source</a></sub></p>
 
 ## <a name="s-exp.pact/default-opts">`default-opts`</a><a name="s-exp.pact/default-opts"></a>
 
 
 
 <p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L18-L22">Source</a></sub></p>
+
+## <a name="s-exp.pact/find-description">`find-description`</a><a name="s-exp.pact/find-description"></a>
+
+
+
+
+Find first `description` value in spec hierarchy for spec
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L66-L68">Source</a></sub></p>
+
+## <a name="s-exp.pact/find-format">`find-format`</a><a name="s-exp.pact/find-format"></a>
+
+
+
+
+Find first `format` value in spec hierarchy for spec
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L70-L72">Source</a></sub></p>
+
+## <a name="s-exp.pact/find-id">`find-id`</a><a name="s-exp.pact/find-id"></a>
+
+
+
+
+Find first `$id` value in spec hierarchy for spec
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L58-L60">Source</a></sub></p>
+
+## <a name="s-exp.pact/find-pattern">`find-pattern`</a><a name="s-exp.pact/find-pattern"></a>
+
+
+
+
+Find first `pattern` value in spec hierarchy for spec
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L74-L76">Source</a></sub></p>
+
+## <a name="s-exp.pact/find-schema">`find-schema`</a><a name="s-exp.pact/find-schema"></a>
+
+
+
+
+Find first `schema` value in spec hierarchy for spec
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L78-L80">Source</a></sub></p>
+
+## <a name="s-exp.pact/find-title">`find-title`</a><a name="s-exp.pact/find-title"></a>
+
+
+
+
+Find first `title` value in spec hierarchy for spec
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L62-L64">Source</a></sub></p>
 
 ## <a name="s-exp.pact/json-schema">`json-schema`</a><a name="s-exp.pact/json-schema"></a>
 ``` clojure
@@ -60,7 +114,7 @@ Generate json-schema for `spec`.
 
   * `unknown-spec-default` - value to be used for unknown values for conversion
   - defaults to `nil`
-<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L108-L152">Source</a></sub></p>
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L132-L176">Source</a></sub></p>
 
 ## <a name="s-exp.pact/meta">`meta`</a><a name="s-exp.pact/meta"></a>
 ``` clojure
@@ -69,7 +123,7 @@ Generate json-schema for `spec`.
 ```
 
 Returns `spec` metadata
-<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L72-L75">Source</a></sub></p>
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L96-L99">Source</a></sub></p>
 
 ## <a name="s-exp.pact/register-form!">`register-form!`</a><a name="s-exp.pact/register-form!"></a>
 ``` clojure
@@ -104,7 +158,7 @@ Sets `conformer` and `schema-fn` for predicate parser.
   If a conformer matches, the bindings we get from the s/conform result will be
   passed to `schema-fn` in order to generate an appropriate json-schema value
   for the predicate.
-<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L303-L315">Source</a></sub></p>
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L320-L332">Source</a></sub></p>
 
 ## <a name="s-exp.pact/registry">`registry`</a><a name="s-exp.pact/registry"></a>
 ``` clojure
@@ -129,7 +183,7 @@ Returns registry
 ```
 
 Like `clojure.core/vary-meta but on spec `k` metadata
-<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L58-L65">Source</a></sub></p>
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L82-L89">Source</a></sub></p>
 
 ## <a name="s-exp.pact/with-description">`with-description`</a><a name="s-exp.pact/with-description"></a>
 ``` clojure
@@ -138,7 +192,7 @@ Like `clojure.core/vary-meta but on spec `k` metadata
 ```
 
 Add `description` to spec
-<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L92-L95">Source</a></sub></p>
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L116-L119">Source</a></sub></p>
 
 ## <a name="s-exp.pact/with-format">`with-format`</a><a name="s-exp.pact/with-format"></a>
 ``` clojure
@@ -148,7 +202,7 @@ Add `description` to spec
 
 Add `format` to spec.
   See https://json-schema.org/understanding-json-schema/reference/string#built-in-formats
-<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L97-L101">Source</a></sub></p>
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L121-L125">Source</a></sub></p>
 
 ## <a name="s-exp.pact/with-id">`with-id`</a><a name="s-exp.pact/with-id"></a>
 ``` clojure
@@ -157,7 +211,7 @@ Add `format` to spec.
 ```
 
 Adds $id to spec
-<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L82-L85">Source</a></sub></p>
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L106-L109">Source</a></sub></p>
 
 ## <a name="s-exp.pact/with-meta">`with-meta`</a><a name="s-exp.pact/with-meta"></a>
 ``` clojure
@@ -166,7 +220,7 @@ Adds $id to spec
 ```
 
 Sets metadata for `spec` 
-<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L67-L70">Source</a></sub></p>
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L91-L94">Source</a></sub></p>
 
 ## <a name="s-exp.pact/with-pattern">`with-pattern`</a><a name="s-exp.pact/with-pattern"></a>
 ``` clojure
@@ -175,7 +229,7 @@ Sets metadata for `spec`
 ```
 
 Add `pattern` to spec
-<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L103-L106">Source</a></sub></p>
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L127-L130">Source</a></sub></p>
 
 ## <a name="s-exp.pact/with-title">`with-title`</a><a name="s-exp.pact/with-title"></a>
 ``` clojure
@@ -184,4 +238,4 @@ Add `pattern` to spec
 ```
 
 Add `title` to spec
-<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L87-L90">Source</a></sub></p>
+<p><sub><a href="https://github.com/exoscale/canary/blob/master/src/s_exp/pact.clj#L111-L114">Source</a></sub></p>
