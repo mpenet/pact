@@ -1,6 +1,6 @@
 # pact
 
-[![Clojars Project](https://img.shields.io/clojars/v/com.s-exp/pact.svg)](https://clojars.org/com.s-exp/pact)
+<img src="https://github.com/mpenet/pact/assets/106390/af04daa4-6d5f-49ee-ba33-bc971b7355fc" width="250" height="250">
 
 /!\ WIP - everything is subject to change
 
@@ -231,22 +231,16 @@ see [API.md](API.md)
 
 `clj -X:test`
 
+# Installation
+
+[![Clojars Project](https://img.shields.io/clojars/v/com.s-exp/pact.svg)](https://clojars.org/com.s-exp/pact)
 
 ## Alternatives
 
 There are a few libraries in the same area for clojure, namely spec-tools and
-malli. 
+malli. Both with their own specificities. 
 
-In most cases they focus on openapi/swagger rather than json-schema, which sits
-at a lower level and now is the foundation for openapi (it wasn't always the
-case). 
-
-Pact is solely aimed at json-schema, if you want to build openapi schemas on
-top, it's up to you how you want to do it, you don't have to buy into a specific
-routing library or some validation flow, you don't even have to buy into openapi
-at all potentially.
-
-Pact is also obviously focused on clojure spec.
+Pact is obviously focused on clojure.spec . 
 
 ## License 
 
