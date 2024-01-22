@@ -31,6 +31,6 @@
           {:deps/root "jvm"
            :git/sha "7c8bef54eda28367193ec433af01bb940114f012"}}
    :exec-fn quickdoc.api/quickdoc
-   :exec-args {:github/repo "https://github.com/exoscale/canary"
+   :exec-args {:github/repo "https://github.com/mpenet/pact"
                :git/branch "master"
                :source-paths ["src/s_exp/pact.clj"]}}}}
