@@ -2,7 +2,7 @@
 
 /!\ WIP - everything is subject to change
 
-Generate json-schema  from clojure specs.
+Tiny libary allowing you to generate json-schema from clojure specs.
 
 # Rationale
 
@@ -230,6 +230,23 @@ see [API.md](API.md)
 ## Tests
 
 `clj -X:test`
+
+
+## Alternatives
+
+There are a few libraries in the same area for clojure, namely spec-tools and
+malli. 
+
+In most cases they focus on openapi/swagger rather than json-schema, which sits
+at a lower level and now is the foundation for openapi (it wasn't always the
+case). 
+
+Pact is solely aimed at json-schema, if you want to build openapi schemas on
+top, it's up to you how you want to do it, you don't have to buy into a specific
+routing library or some validation flow, you don't even have to buy into openapi
+at all potentially.
+
+Pact is also obviously focused on clojure spec.
 
 ## License 
 
