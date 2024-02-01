@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [derive vary-meta meta with-meta])
   (:require
    [clojure.spec.alpha :as s]
+   [exoscale.ex :as ex]
    [s-exp.pact.impl :as impl]))
 
 (s/def :s-exp.pact/options
@@ -153,11 +154,11 @@
         ret (or (find-schema registry-val
                              spec-chain
                              opts)
-                (when (:strict registry-val)
+                (when (:strict opts)
                   (throw (ex-info "Unknown val to openapi generator"
-                                  {:exoscale.ex/type :exoscale.ex/invalid
+                                  {:exoscale.ex/type :s-exp.pact/unknown-val
                                    :spec k})))
-                (:unknown-spec-default registry-val))
+                (:unknown-spec-default opts))
         desc (find-description registry-val spec-chain)
         fmt (find-format registry-val spec-chain)
         pattern (find-pattern registry-val spec-chain)
@@ -174,6 +175,8 @@
       (assoc :format fmt)
       pattern
       (assoc :pattern pattern))))
+
+(ex/derive :s-exp.pact/unknown-val :exoscale.ex/invalid)
 
 ;; idents
 
@@ -382,14 +385,21 @@
    (register-pred! k schema-fn default-opts)))
 
 (defn- parse-fn
-  [fn-body opts]
+  [args fn-body opts]
   (or (impl/pred-conformer fn-body opts)
-      {:type "object" :pact "pred"}))
+      (if (:strict opts)
+        (throw (ex-info "Unknown predicate to openapi generator"
+                        {:exoscale.ex/type :s-exp.pact/unknown-pred
+                         :args args
+                         :body fn-body}))
+        (json-schema (:unknown-spec-default opts)))))
+
+(ex/derive :s-exp.pact/unknown-pred :exoscale.ex/invalid)
 
 (register-form!
  `clojure.core/fn
- (fn [[_args form] opts]
-   (parse-fn form opts)))
+ (fn [[args form] opts]
+   (parse-fn args form opts)))
 
 ;;; preds
 

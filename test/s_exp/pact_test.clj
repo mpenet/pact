@@ -1,6 +1,7 @@
 (ns s-exp.pact-test
   (:require [clojure.spec.alpha :as s]
             [clojure.test :as test :refer [is deftest are]]
+            [exoscale.ex.test]
             [s-exp.pact :as p]
             [s-exp.pact.impl :as impl]))
 
@@ -137,6 +138,14 @@
     ::f10 {:allOf [{:type "number"} {:minimum 11, :type "number"}]}
     ::f11 {:allOf [{:type "number"} {:const 10}]}
     ::f12 {:allOf [{:type "number"} {:not {:const 10}}]}))
+
+(deftest pred-strictness
+  (s/def ::unknown-pred (s/and string? (fn [x] :stuff)))
+  (is (thrown-ex-info-type? :s-exp.pact/unknown-pred (p/json-schema ::unknown-pred))))
+
+(deftest ident-strictness
+  (s/def ::unknown-val (s/and ::xxx ::yyy))
+  (is (thrown-ex-info-type? :s-exp.pact/unknown-val (p/json-schema ::unknown-val))))
 
 (deftest meta-test
   (let [title "test"
