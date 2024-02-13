@@ -143,6 +143,12 @@
   (s/def ::unknown-pred (s/and string? (fn [x] :stuff)))
   (is (thrown-ex-info-type? :s-exp.pact/unknown-pred (p/json-schema ::unknown-pred))))
 
+(defmacro string-of [& _])
+
+(deftest form-strictness
+  (s/def ::unknown-pred (s/and string? (string-of string?)))
+  (is (thrown-ex-info-type? :s-exp.pact/unknown-val (p/json-schema ::unknown-val))))
+
 (deftest ident-strictness
   (s/def ::unknown-val (s/and ::xxx ::yyy))
   (is (thrown-ex-info-type? :s-exp.pact/unknown-val (p/json-schema ::unknown-val))))

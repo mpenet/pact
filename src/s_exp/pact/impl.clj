@@ -30,15 +30,18 @@
             (update :s-exp.pact.json-schema/forms merge forms)
             (update :s-exp.pact.json-schema/idents merge idents)
             (update :s-exp.pact.json-schema/preds merge preds))
-        opts (merge opts registry-val)]
+        opts (merge opts registry-val)
+        cnil (constantly nil)]
     (reduce (fn find-schema* [_ x]
               (when-let [schema (cond
                                   (set? x)
-                                  ((registry-form registry-val 's-exp.pact/enum-of)
+                                  ((or (registry-form registry-val 's-exp.pact/enum-of)
+                                       cnil)
                                    x opts)
 
                                   (sequential? x)
-                                  ((registry-form registry-val (first x))
+                                  ((or (registry-form registry-val (first x))
+                                       cnil)
                                    (rest x) opts)
 
                                   (qualified-ident? x)

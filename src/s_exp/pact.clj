@@ -155,7 +155,7 @@
                              spec-chain
                              opts)
                 (when (:strict opts)
-                  (throw (ex-info "Unknown val to openapi generator"
+                  (throw (ex-info "Unknown val to json-schema generator"
                                   {:exoscale.ex/type :s-exp.pact/unknown-val
                                    :spec k})))
                 (:unknown-spec-default opts))
@@ -388,7 +388,7 @@
   [args fn-body opts]
   (or (impl/pred-conformer fn-body opts)
       (if (:strict opts)
-        (throw (ex-info "Unknown predicate to openapi generator"
+        (throw (ex-info "Unknown predicate to json-schema generator"
                         {:exoscale.ex/type :s-exp.pact/unknown-pred
                          :args args
                          :body fn-body}))
