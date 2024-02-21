@@ -141,17 +141,28 @@
 
 (deftest pred-strictness
   (s/def ::unknown-pred (s/and string? (fn [x] :stuff)))
-  (is (thrown-ex-info-type? :s-exp.pact/unknown-pred (p/json-schema ::unknown-pred))))
+  (is (thrown-ex-info-type? :s-exp.pact/unknown-pred (p/json-schema ::unknown-pred)))
+  (is (= {:allOf [{:type "string"}]} (p/json-schema ::unknown-pred {:strict false}))))
 
 (defmacro string-of [& _])
 
 (deftest form-strictness
-  (s/def ::unknown-pred (s/and string? (string-of string?)))
-  (is (thrown-ex-info-type? :s-exp.pact/unknown-val (p/json-schema ::unknown-val))))
+  (s/def ::unknown-form (s/and string? (string-of string?)))
+  (is (thrown-ex-info-type? :s-exp.pact/unknown-val (p/json-schema ::unknown-form)))
+  (is (= {:allOf [{:type "string"}]} (p/json-schema ::unknown-form {:strict false}))))
 
 (deftest ident-strictness
-  (s/def ::unknown-val (s/and ::xxx ::yyy))
-  (is (thrown-ex-info-type? :s-exp.pact/unknown-val (p/json-schema ::unknown-val))))
+  (s/def ::unknown-ident (s/and ::xxx ::yyy))
+  (is (thrown-ex-info-type? :s-exp.pact/unknown-val (p/json-schema ::unknown-ident)))
+  (is (= {:allOf []} (p/json-schema ::unknown-ident {:strict false})))
+  (is (= {:allOf [{:type "object"} {:type "object"}]}
+         (p/json-schema ::unknown-ident {:strict false
+                                         :unknown-spec-default {:type "object"}}))))
+
+(deftest s-and-first-arg
+  (s/def ::s-and-first (s/and string? (string-of string?)))
+  (is (= {:allOf [{:type "string"}]}
+         (p/json-schema ::s-and-first {:gen-only-first-and-arg true}))))
 
 (deftest meta-test
   (let [title "test"

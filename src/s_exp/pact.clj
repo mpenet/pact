@@ -392,7 +392,7 @@
                         {:exoscale.ex/type :s-exp.pact/unknown-pred
                          :args args
                          :body fn-body}))
-        (json-schema (:unknown-spec-default opts)))))
+        (json-schema (:unknown-spec-default opts) opts))))
 
 (ex/derive :s-exp.pact/unknown-pred :exoscale.ex/invalid)
 
