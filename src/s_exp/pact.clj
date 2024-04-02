@@ -222,20 +222,22 @@
 
 ;;; forms
 
-(register-form!
- `s/coll-of
- (fn [[spec & {:as spec-opts :keys [max-count min-count length kind]}] opts]
-   (let [distinct (or (:distinct spec-opts) (= kind `set?))]
-     (cond-> (impl/array-schema :items (json-schema spec opts))
-       length
-       (assoc :minItems length
-              :maxItems length)
-       max-count
-       (assoc :maxItems max-count)
-       min-count
-       (assoc :minItems min-count)
-       distinct
-       (assoc :uniqueItems true)))))
+(defn- every-form-gen*
+  [[spec & {:as spec-opts :keys [max-count min-count length kind]}] opts]
+  (let [distinct (or (:distinct spec-opts) (= kind `set?))]
+    (cond-> (impl/array-schema :items (json-schema spec opts))
+      length
+      (assoc :minItems length
+             :maxItems length)
+      max-count
+      (assoc :maxItems max-count)
+      min-count
+      (assoc :minItems min-count)
+      distinct
+      (assoc :uniqueItems true))))
+
+(register-form! `s/every every-form-gen*)
+(register-form! `s/coll-of every-form-gen*)
 
 (register-form! `s/cat
                 (fn [pairs opts]

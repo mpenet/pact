@@ -41,6 +41,8 @@
     `(s/alt :num number? :int int?) {:anyOf [{:type "number"} {:type "integer" :format "int64"}]}
     `(s/coll-of string?) {:type "array", :items {:type "string"}}
     `(s/coll-of string? :max-count 3) {:type "array", :items {:type "string"} :maxItems 3}
+    `(s/every string?) {:type "array", :items {:type "string"}}
+    `(s/every string? :max-count 3) {:type "array", :items {:type "string"} :maxItems 3}
     `(s/map-of any? string?) {:type "object", :patternProperties {"*" {:type "string"}}}
     `(s/map-of int? string?) {:type "object", :patternProperties {"*" {:type "string"}}}
     `(s/cat :foo (s/* string?)) {:type "array" :items {:anyOf [{:items [{:type "string"}], :type "array"}]}}
