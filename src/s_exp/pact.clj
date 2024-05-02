@@ -428,7 +428,7 @@
 
 (s/def ::count+arg (s/spec (s/cat :_ #{'count} :sym simple-symbol?)))
 
-(register-pred! (s/def :s-exp-pact.pred/count-compare
+(register-pred! (s/def :s-exp-pact.json-schema.pred/count-compare
                   (s/or :count-1
                         (s/cat :op #{'<= '< '> '>= '= 'not=}
                                :_cnt ::count+arg
@@ -448,3 +448,11 @@
                            ([:count-1 <] [:count-2 >]) {:maxItems (dec x)}
                            ([:count-1 >] [:count-2 <]) {:minItems (inc x)})
                          :type "array")))
+
+(register-pred! (s/def :s-exp.pact.json-schema.pred/int-in-range?
+                  (s/cat :op #{'clojure.spec.alpha/int-in-range?}
+                         :minimum int?
+                         :maximum int?
+                         :_ any?))
+                (fn [{:keys [minimum maximum]} _opts]
+                  {:type "integer" :minimum minimum :maximum maximum}))
