@@ -43,18 +43,20 @@
 (defn register-form!
   "Registers a `form` for generation. Upon encountering that form (by matching its
   against first element or sequential symbolic spec values), `json-schema` will
-  then call `f` against its arguments for generation"
+  then call `f` against its arguments for generation. Returns form passed as argument"
   [form f]
   (swap! registry-ref update :s-exp.pact.json-schema/forms
-         assoc form f))
+         assoc form f)
+  form)
 
 (defn register-ident!
   "Registers an `ident` for generation. Upon encountering a qualified
   symbol/keyword matching an `ident` in the registry it will return `x` as
-  generated value"
+  generated value. Returns the `ident` passed as argument"
   [ident x]
   (swap! registry-ref update :s-exp.pact.json-schema/idents
-         assoc ident x))
+         assoc ident x)
+  ident)
 
 (def find-id
   "Find first `$id` value in spec hierarchy for spec"
@@ -382,7 +384,8 @@
           (fn [registry-val]
             (assoc-in registry-val
                       [:s-exp.pact.json-schema/preds k]
-                      schema-fn))))
+                      schema-fn)))
+   k)
   ([k schema-fn]
    (register-pred! k schema-fn default-opts)))
 
