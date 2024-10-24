@@ -2,8 +2,6 @@
 
 <img src="https://github.com/mpenet/pact/assets/106390/af04daa4-6d5f-49ee-ba33-bc971b7355fc" width="250" height="250">
 
-/!\ WIP - everything is subject to change
-
 Tiny library allowing you to generate json-schema from clojure specs.
 
 # Rationale
