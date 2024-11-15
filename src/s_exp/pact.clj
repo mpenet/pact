@@ -167,7 +167,7 @@
         id (find-id registry-val spec-chain)
         title (find-title registry-val spec-chain)]
     (cond-> ret
-      (and (:add-x-spec opts) (qualified-ident? k))
+      (and (:add-x-spec opts) (qualified-keyword? k))
       (assoc :x-spec (format "%s/%s" (namespace k) (name k)))
       id
       (assoc :id id)
