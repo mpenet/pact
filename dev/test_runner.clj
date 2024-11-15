@@ -10,6 +10,7 @@
    :capture-output? false
    :fail-fast? false
    :multithread? false
+   :add-x-spec false
    :reporters [eftest.report.pretty/report]})
 
 (defn sort-vars

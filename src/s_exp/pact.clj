@@ -149,7 +149,7 @@
   - defaults to `nil`"
   [k & {:as opts
         :keys [property-key-fn strict gen-only-first-and-arg
-               unknown-spec-default]}]
+               unknown-spec-default add-x-spec]}]
   (let [opts (into default-opts opts)
         spec-chain (impl/spec-chain k)
         registry-val (registry)
@@ -167,6 +167,8 @@
         id (find-id registry-val spec-chain)
         title (find-title registry-val spec-chain)]
     (cond-> ret
+      (and (:add-x-spec opts) (qualified-ident? k))
+      (assoc :x-spec (format "%s/%s" (namespace k) (name k)))
       id
       (assoc :id id)
       title
