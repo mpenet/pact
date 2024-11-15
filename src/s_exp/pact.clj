@@ -59,8 +59,8 @@
   ident)
 
 (def find-id
-  "Find first `$id` value in spec hierarchy for spec"
-  (impl/find-key :$id))
+  "Find first `id` value in spec hierarchy for spec"
+  (impl/find-key :id))
 
 (def find-title
   "Find first `title` value in spec hierarchy for spec"
@@ -109,7 +109,7 @@
 (defn with-id
   "Adds $id to spec"
   [spec id]
-  (assoc-meta spec :$id id))
+  (assoc-meta spec :id id))
 
 (defn with-title
   "Add `title` to spec"
@@ -168,7 +168,7 @@
         title (find-title registry-val spec-chain)]
     (cond-> ret
       id
-      (assoc :$id id)
+      (assoc :id id)
       title
       (assoc :title title)
       desc
