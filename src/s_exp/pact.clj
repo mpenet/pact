@@ -273,7 +273,7 @@
  `s/map-of
  (fn [[_ val-spec] opts]
    {:type "object"
-    :patternProperties {"*" (json-schema val-spec opts)}}))
+    :patternProperties {".*" (json-schema val-spec opts)}}))
 
 (register-form!
  `s/tuple
